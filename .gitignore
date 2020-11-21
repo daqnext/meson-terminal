@@ -1,0 +1,36 @@
+# Created by .ignore support plugin (hsz.mobi)
+### Go template
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+*.log
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+.idea
+.DS_Store
+data
+.vscode/
+
+/terminal/server.crt
+/terminal/server.key
+/terminal/terminalmac
+/terminal/terminallinux
+/terminal/terminalwin
+/terminal/terminal
+/terminal/task
+/terminal/files/
+/test
+/terminal/ldb/
+/terminal/terminallinux
+

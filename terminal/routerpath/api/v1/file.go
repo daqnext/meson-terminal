@@ -9,8 +9,8 @@ import (
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/resp"
 	"github.com/daqnext/meson-common/common/utils"
+	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/gin-gonic/gin"
-	"meson-common/terminal/manager/global"
 )
 
 func init() {

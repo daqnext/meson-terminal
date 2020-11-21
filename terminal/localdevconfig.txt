@@ -5,7 +5,7 @@ username= zzb
 password= 123456
 
 # server port
-port= 19091
+#port= 19091
 
 # space limit (Maximum allowable space for Terminal in GB, less than the total disk)
 spacelimit = 40
@@ -17,7 +17,7 @@ spacelimit = 40
 #apiProto = http
 
 #loglevel: PanicLevel=0,FatalLevel=1,ErrorLevel=2,WarnLevel=3,InfoLevel=4,DebugLevel=5,TraceLevel=6
-loglevel: 6
+loglevel= 6
 
 #ginMode debug/release
 ginMode = debug

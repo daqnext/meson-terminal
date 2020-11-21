@@ -81,12 +81,15 @@ func CheckConfig() {
 		num, err := strconv.Atoi(myport)
 		if err != nil {
 			UsingPort = "19091"
-			fmt.Println("port error,server will be run in port:19091")
+			fmt.Println("input port error,server will be run in port:19091")
+			return
 		}
 		if num < 0 || num > 65535 {
 			UsingPort = "19091"
-			fmt.Println("port error,server will be run in port:19091")
+			fmt.Println("input port error,server will be run in port:19091")
+			return
 		}
+		UsingPort = myport
 	}
 
 }
@@ -96,7 +99,7 @@ func ReadFlag() {
 	flag.StringVar(&port, Port, "", "server port")
 	flag.IntVar(&spacelimit, SpaceLimit, 0, "cdu space use limit")
 	flag.StringVar(&serverdomain, ServerDomain, "", "server domain")
-	flag.Parse()
+	//flag.Parse()
 }
 
 func ReadConfigFile() {
@@ -171,6 +174,10 @@ func loadConfigFromTxt(configPath string) {
 }
 
 func SetDefault(key, defaultValue string) {
+	_, exist := configMap[key]
+	if exist {
+		return
+	}
 	configMap[key] = defaultValue
 }
 

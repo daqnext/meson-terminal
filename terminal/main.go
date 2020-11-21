@@ -1,37 +1,37 @@
 package main
 
 import (
-	_ "github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
-	"github.com/gin-gonic/gin"
-
 	"fmt"
 	"github.com/daqnext/meson-common/common"
-	"github.com/daqnext/meson-common/common/accountmgr"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
-	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
+	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
+	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 	"io/ioutil"
 	"math/rand"
 	"strings"
 	"time"
-
-	//api router
-	_ "github.com/daqnext/meson-terminal/terminal/routerpath/api"
-	_ "github.com/daqnext/meson-terminal/terminal/routerpath/api/v1"
 )
 
-func main() {
+func init() {
 	config.ReadConfig()
+	terminallogger.InitLogger()
+}
 
-	//login to get token
-	username := config.GetString("username")
-	password := config.GetString("password")
-	accountmgr.SLogin(global.SLoginUrl, username, password)
+func main() {
+	config.CheckConfig()
 
+	logger.Debug("test run")
+
+	////login to get token
+	//username := config.GetString("username")
+	//password := config.GetString("password")
+	//accountmgr.SLogin(global.SLoginUrl, username, password)
+	//
 	//设置gin的工作模式
 	if config.GetString("ginMode") == "release" {
 		gin.SetMode(gin.ReleaseMode)
@@ -68,7 +68,7 @@ func main() {
 
 	logger.Info("Terminal Is Running...")
 
-	addr := fmt.Sprintf(":%s", config.GetString("port"))
+	addr := fmt.Sprintf(":%s", config.UsingPort)
 	if config.GetString("apiProto") == "http" {
 		common.GinRouter.Run(addr) // only in local dev
 	} else {

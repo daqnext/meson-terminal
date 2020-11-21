@@ -8,7 +8,7 @@ const FileDirPath = "./files"
 const LDBPath = "./ldb"
 const LDBFile = "./ldb/index"
 
-var ServerDomain = config.GetString("serverdomain")
+var ServerDomain = config.UsingServerDomain
 var ReportDownloadFinishUrl = ServerDomain + "/api/v1/s/terminal/downloadfinish"
 var ReportDownloadFailedUrl = ServerDomain + "/api/v1/s/terminal/downloadfailed"
 var SendHeartBeatUrl = ServerDomain + "/api/v1/s/terminal/heartbeat"

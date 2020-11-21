@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -21,7 +22,7 @@ const (
 	GinMode      string = "ginMode"
 )
 
-//var V *viper.Viper
+var ConfigPath string
 var configMap = map[string]string{}
 var (
 	token        string
@@ -37,20 +38,64 @@ var (
 	UsingServerDomain string
 )
 
+func init() {
+	ReadConfig()
+}
+
+func ReadTokenAndPortFromFile() (token, port string) {
+	token = ""
+	port = ""
+	f, err := os.OpenFile("./tokenfile", os.O_RDONLY, 0766)
+	if err != nil {
+		fmt.Println(err.Error())
+		return token, port
+	}
+	defer f.Close()
+	contentByte, err := ioutil.ReadAll(f)
+	if err != nil {
+		fmt.Println(err.Error())
+		return token, port
+	}
+	strs := strings.Split(string(contentByte), "^")
+	if len(strs) != 2 {
+		return token, port
+	}
+	token = strs[0]
+	port = strs[1]
+	return token, port
+}
+
+func RecordTokenAndPortToFile(token string, port string) {
+	f, err := os.OpenFile("./tokenfile", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0766)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	defer f.Close()
+	_, err = f.Write([]byte(token + "^" + port))
+}
+
 func ReadConfig() {
 	//先读取命令行
 	ReadFlag()
 	//读取配置文件
 	ReadConfigFile()
 
+	recordToken, recordPort := ReadTokenAndPortFromFile()
+
 	UsingToken = token
 	if UsingToken == "" {
 		UsingToken = GetString(Token)
+	}
+	if UsingToken == "" {
+		UsingToken = recordToken
 	}
 
 	UsingPort = port
 	if UsingPort == "" {
 		UsingPort = GetString(Port)
+	}
+	if UsingPort == "" {
+		UsingPort = recordPort
 	}
 
 	UsingSpaceLimit = spacelimit
@@ -103,14 +148,13 @@ func ReadFlag() {
 }
 
 func ReadConfigFile() {
-	var configPath string
-	flag.StringVar(&configPath, "config", "./config.txt", "path to config file")
+	flag.StringVar(&ConfigPath, "config", "./config.txt", "path to config file")
 	flag.Parse()
-	if len(configPath) == 0 {
+	if len(ConfigPath) == 0 {
 		log.Fatalln("failed to find config file, please provide config file!")
 		return
 	}
-	loadConfigFromTxt(configPath)
+	loadConfigFromTxt(ConfigPath)
 
 	SetDefault(Token, "")
 	SetDefault(Port, "")

@@ -1,9 +1,3 @@
-# username register in coldcdn.com
-username= xxxxx
-
-# password
-password= 111111
-
 #token register and login in https://meson.network
 token=
 

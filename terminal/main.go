@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"github.com/daqnext/meson-common/common"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-terminal/terminal/manager/account"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
+	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
 	"github.com/gin-gonic/gin"
@@ -15,10 +17,13 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+
+	//api router
+	_ "github.com/daqnext/meson-terminal/terminal/routerpath/api"
+	_ "github.com/daqnext/meson-terminal/terminal/routerpath/api/v1"
 )
 
 func init() {
-	config.ReadConfig()
 	terminallogger.InitLogger()
 }
 
@@ -27,11 +32,20 @@ func main() {
 
 	logger.Debug("test run")
 
-	////login to get token
-	//username := config.GetString("username")
-	//password := config.GetString("password")
-	//accountmgr.SLogin(global.SLoginUrl, username, password)
-	//
+	//login
+	account.TerminalLogin(global.TerminalLoginUrl, config.UsingToken)
+
+	go func() {
+		select {
+		case flag := <-account.ServerRequestTest:
+			if flag == true {
+				logger.Info("net connect confirmed")
+			}
+		case <-time.After(30 * time.Second):
+			logger.Fatal("net connect error,please make sure your port is open")
+		}
+	}()
+
 	//设置gin的工作模式
 	if config.GetString("ginMode") == "release" {
 		gin.SetMode(gin.ReleaseMode)
@@ -78,6 +92,7 @@ func main() {
 			logger.Error("server start error", "err", err)
 		}
 	}
+
 }
 
 func startScheduleJob() {

@@ -81,7 +81,7 @@ func main() {
 	logger.Info("Terminal Is Running...")
 
 	go func() {
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 10)
 		statemgr.SendStateToServer()
 		//start schedule job- upload terminal state
 		startScheduleJob()

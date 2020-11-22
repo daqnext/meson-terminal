@@ -40,6 +40,7 @@ func main() {
 		case flag := <-account.ServerRequestTest:
 			if flag == true {
 				logger.Info("net connect confirmed")
+				account.ServerRequestTest = nil
 			}
 		case <-time.After(30 * time.Second):
 			logger.Fatal("net connect error,please make sure your port is open")

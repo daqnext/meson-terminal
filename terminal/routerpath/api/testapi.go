@@ -15,7 +15,9 @@ func init() {
 	// http://xxxx.com/api/testapi/test
 	common.GetMyRouter().GET("/test", func(context *gin.Context) {
 		logger.Debug("Get test Request form Server")
-		account.ServerRequestTest <- true
+		if account.ServerRequestTest != nil {
+			account.ServerRequestTest <- true
+		}
 		context.JSON(200, gin.H{
 			"status": 0,
 			"time":   time.Now().Format("2006-01-02 15:04:05.000"),

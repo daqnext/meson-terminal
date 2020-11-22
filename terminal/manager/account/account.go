@@ -12,7 +12,7 @@ import (
 )
 
 var Token string
-var ServerRequestTest = make(chan bool, 4)
+var ServerRequestTest = make(chan bool, 1)
 
 func TerminalLogin(url string, token string) {
 	if Token != "" && len(Token) == 24 {

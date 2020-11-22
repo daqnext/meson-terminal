@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"github.com/daqnext/meson-common/common/logger"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -42,36 +42,82 @@ func init() {
 	ReadConfig()
 }
 
-func ReadTokenAndPortFromFile() (token, port string) {
-	token = ""
-	port = ""
-	f, err := os.OpenFile("./tokenfile", os.O_RDONLY, 0766)
+func RecordTokenAndPortToFile(token string, port string) {
+	of, err := os.Open(ConfigPath)
 	if err != nil {
-		fmt.Println(err.Error())
-		return token, port
+		logger.Error("open file record token and port error", "err")
+		return
 	}
-	defer f.Close()
-	contentByte, err := ioutil.ReadAll(f)
+	defer func() {
+		if of != nil {
+			of.Close()
+		}
+	}()
+
+	nf, err := os.OpenFile(ConfigPath+".mdf", os.O_RDWR|os.O_CREATE, 0766)
 	if err != nil {
-		fmt.Println(err.Error())
-		return token, port
+		logger.Error("open file record token and port error", "err")
+		return
 	}
-	strs := strings.Split(string(contentByte), "^")
-	if len(strs) != 2 {
-		return token, port
+	defer func() {
+		if nf != nil {
+			of.Close()
+		}
+	}()
+
+	r := bufio.NewReader(of)
+	for {
+		originLine, _, err := r.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			logger.Error("readline error", "err", err)
+			return
+		}
+
+		newLine := string(originLine)
+
+		newLine = overWriteLine(newLine, "token", token)
+		newLine = overWriteLine(newLine, "port", port)
+
+		_, err = nf.WriteString(newLine + "\n")
+		if err != nil {
+			fmt.Println("write to file fail:", err)
+			return
+		}
 	}
-	token = strs[0]
-	port = strs[1]
-	return token, port
+
+	of.Close()
+	of = nil
+	nf.Close()
+	nf = nil
+
+	err = os.Remove(ConfigPath)
+	if err == nil {
+		os.Rename(ConfigPath+".mdf", ConfigPath)
+	}
+
 }
 
-func RecordTokenAndPortToFile(token string, port string) {
-	f, err := os.OpenFile("./tokenfile", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0766)
-	if err != nil {
-		fmt.Println(err.Error())
+func overWriteLine(line string, vname string, v string) string {
+	if strings.Index(line, "#") == 0 {
+		return line
 	}
-	defer f.Close()
-	_, err = f.Write([]byte(token + "^" + port))
+	index := strings.Index(line, "=")
+	if index < 0 {
+		return line
+	}
+	first := strings.TrimSpace(line[:index])
+	if len(first) == 0 {
+		return line
+	}
+
+	if first == vname {
+		new := vname + " = " + v
+		return new
+	}
+	return line
 }
 
 func ReadConfig() {
@@ -80,22 +126,14 @@ func ReadConfig() {
 	//读取配置文件
 	ReadConfigFile()
 
-	recordToken, recordPort := ReadTokenAndPortFromFile()
-
 	UsingToken = token
 	if UsingToken == "" {
 		UsingToken = GetString(Token)
-	}
-	if UsingToken == "" {
-		UsingToken = recordToken
 	}
 
 	UsingPort = port
 	if UsingPort == "" {
 		UsingPort = GetString(Port)
-	}
-	if UsingPort == "" {
-		UsingPort = recordPort
 	}
 
 	UsingSpaceLimit = spacelimit
@@ -120,6 +158,11 @@ func CheckConfig() {
 	}
 
 	var myport string
+	if UsingPort == "80" || UsingPort == "443" {
+		fmt.Printf("CAN NOT use port " + UsingPort + " ,please input a new port \n")
+		UsingPort = ""
+	}
+
 	if UsingPort == "" {
 		fmt.Printf("Please enter your port,CAN NOT be 80 or 443(default 19091): ")
 		fmt.Scanln(&myport)
@@ -129,9 +172,14 @@ func CheckConfig() {
 			fmt.Println("input port error,server will be run in port:19091")
 			return
 		}
-		if num < 0 || num > 65535 {
+		if num < 1 || num > 65535 {
 			UsingPort = "19091"
 			fmt.Println("input port error,server will be run in port:19091")
+			return
+		}
+		if num == 80 || num == 443 {
+			UsingPort = "19091"
+			fmt.Printf("port CAN NOT be %d,server will be run in port:19091 \n", num)
 			return
 		}
 		UsingPort = myport

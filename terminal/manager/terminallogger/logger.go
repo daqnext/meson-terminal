@@ -1,13 +1,6 @@
 package terminallogger
 
 import (
-	//baselogger "github.com/daqnext/meson-common/common/terminallogger"
-	//"github.com/daqnext/meson-terminal/terminal/manager/config"
-	//"github.com/sirupsen/logrus"
-	//"io"
-	//"os"
-	//"testing"
-
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/sirupsen/logrus"

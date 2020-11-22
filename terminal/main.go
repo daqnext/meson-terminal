@@ -58,9 +58,6 @@ func main() {
 	//download queue
 	downloader.StartDownloadJob()
 
-	//start schedule job- upload terminal state
-	startScheduleJob()
-
 	//开启api服务器
 	//查找目录下的证书文件
 	crtFileName := ""
@@ -82,6 +79,13 @@ func main() {
 	}
 
 	logger.Info("Terminal Is Running...")
+
+	go func() {
+		time.Sleep(time.Second * 5)
+		statemgr.SendStateToServer()
+		//start schedule job- upload terminal state
+		startScheduleJob()
+	}()
 
 	addr := fmt.Sprintf(":%s", config.UsingPort)
 	if config.GetString("apiProto") == "http" {

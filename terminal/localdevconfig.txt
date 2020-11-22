@@ -1,8 +1,8 @@
 #token register and login in https://meson.network
-token=
+token = fv4pcLw2Kw09TOoPf2aXXg==
 
 # server port
-port= 9091
+port = 8080
 
 # space limit (Maximum allowable space for Terminal in GB, less than the total disk)
 spacelimit = 40

@@ -23,4 +23,11 @@ func init() {
 			"time":   time.Now().Format("2006-01-02 15:04:05.000"),
 		})
 	})
+
+	common.GetMyRouter().GET("/health", func(context *gin.Context) {
+		context.JSON(200, gin.H{
+			"status": 0,
+		})
+	})
+
 }

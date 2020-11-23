@@ -30,8 +30,6 @@ func init() {
 func main() {
 	config.CheckConfig()
 
-	logger.Debug("test run")
-
 	//login
 	account.TerminalLogin(global.TerminalLoginUrl, config.UsingToken)
 
@@ -78,8 +76,6 @@ func main() {
 		}
 	}
 
-	logger.Info("Terminal Is Running...")
-
 	go func() {
 		time.Sleep(time.Second * 10)
 		statemgr.SendStateToServer()
@@ -88,6 +84,7 @@ func main() {
 	}()
 
 	addr := fmt.Sprintf(":%s", config.UsingPort)
+	logger.Info("Terminal Is Running on Port:" + config.UsingPort)
 	if config.GetString("apiProto") == "http" {
 		common.GinRouter.Run(addr) // only in local dev
 	} else {

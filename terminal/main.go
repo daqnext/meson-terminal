@@ -80,13 +80,6 @@ func main() {
 		}
 	}
 
-	//go func() {
-	//	time.Sleep(time.Second * 10)
-	//	statemgr.SendStateToServer()
-	//	//start schedule job- upload terminal state
-	//	startScheduleJob()
-	//}()
-
 	CheckGinStart(func() {
 		logger.Info("Terminal Is Running on Port:" + config.UsingPort)
 		statemgr.SendStateToServer()

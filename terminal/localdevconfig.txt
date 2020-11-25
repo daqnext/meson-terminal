@@ -2,7 +2,7 @@
 token = fv4pcLw2Kw09TOoPf2aXXg==
 
 # server port
-port = 8080
+port = 9091
 
 # space limit (Maximum allowable space for Terminal in GB, less than the total disk)
 spacelimit = 40

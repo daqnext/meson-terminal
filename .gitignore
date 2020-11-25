@@ -35,3 +35,4 @@ data
 /terminal/terminallinux
 /terminal/tokenfile
 
+/terminal/testrun.go

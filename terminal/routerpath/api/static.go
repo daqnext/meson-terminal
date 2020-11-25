@@ -11,7 +11,8 @@ func init() {
 	//you must initialize this
 	common.AutoConfigRouter()
 
-	common.GetMyRouter().Use(filemgr.AccessTime())
+	//common.GetMyRouter().Use(filemgr.AccessTime())
+	common.GetMyRouter().Use(filemgr.PreHandler())
 	// http://xxxx.com/api/static/files
 	common.GetMyRouter().StaticFS("/files", http.Dir(global.FileDirPath))
 }

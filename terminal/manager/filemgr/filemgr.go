@@ -15,7 +15,6 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
 	"github.com/gin-gonic/gin"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -151,18 +150,6 @@ func ScanExpirationFiles() {
 			os.Remove(global.FileDirPath + "/" + v)
 			ldb.DB.Delete([]byte(v), nil)
 		}
-		//if dir is empty,delete dir
-		dirs, _ := ioutil.ReadDir(global.FileDirPath)
-		for _, v := range dirs {
-			dirName := v.Name()
-			if v.IsDir() {
-				//is dir empty
-				files, _ := ioutil.ReadDir(global.FileDirPath + "/" + dirName)
-				if len(files) == 0 {
-					os.Remove(global.FileDirPath + "/" + dirName)
-				}
-			}
-		}
 		SyncCdnDirSize()
 	default:
 		logger.Error("Request FileExpirationTime response ")
@@ -231,4 +218,8 @@ func PreHandler() gin.HandlerFunc {
 
 func DeleteEmptyFolder() {
 	utils.DeleteEmptyFolders(global.FileDirPath)
+}
+
+func DeleteFolder(folderPath string) error {
+	return os.RemoveAll(global.FileDirPath + "/" + folderPath)
 }

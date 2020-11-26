@@ -169,7 +169,7 @@ func startScheduleJob() {
 	}
 
 	//delete empty folder 1time/hour
-	schedule = fmt.Sprintf("%d 0 0/1 * * *", rand.Intn(60))
+	schedule = fmt.Sprintf("%d 0 * * * *", rand.Intn(60))
 	jobId, err = c.AddFunc(schedule, filemgr.DeleteEmptyFolder)
 	if err != nil {
 		logger.Error("ScheduleJob-"+"DeleteEmptyFolder"+" start error", "err", err)

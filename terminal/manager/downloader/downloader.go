@@ -20,20 +20,20 @@ func DownloadFunc(task *downloadtaskmgr.DownloadTask) error {
 		os.Mkdir(dir, 0777)
 	}
 	filePath := dir + "/" + task.FileNameHash
-	//下载文件
+
 	err := downloadtaskmgr.DownLoadFile(task.TargetUrl, filePath)
 	if err != nil {
 		logger.Error("download file url="+task.TargetUrl+"error", "err", err)
 		return err
 	}
 	ldb.SetAccessTimeStamp(task.BindNameHash+"/"+task.FileNameHash, time.Now().Unix())
-	//获取文件的大小
+	//get file size
 	fileInfo, err := os.Stat(filePath)
 	if err == nil {
 		filemgr.CdnSpaceUsed += uint64(fileInfo.Size())
 	}
 
-	//将下载完成的消息 发送给server,告诉server下载完成
+	//post download finish msg to server
 	payload := commonmsg.TerminalDownloadFinishMsg{
 		TransferTag:  task.OriginTag,
 		FileNameHash: task.FileNameHash,
@@ -55,7 +55,7 @@ func DownloadFunc(task *downloadtaskmgr.DownloadTask) error {
 }
 
 func OnDownloadFailed(task *downloadtaskmgr.DownloadTask) {
-	//通知服务器下载失败
+	//post failed msg to server
 	payload := commonmsg.TerminalDownloadFailedMsg{
 		TransferTag:  task.OriginTag,
 		FileNameHash: task.FileNameHash,
@@ -75,17 +75,15 @@ func OnDownloadFailed(task *downloadtaskmgr.DownloadTask) {
 }
 
 func StartDownloadJob() {
-	//如果文件夹不存在 先创建文件夹
+	//create folder
 	if !utils.Exists(global.FileDirPath) {
-		os.Mkdir(global.FileDirPath, 0666)
+		os.Mkdir(global.FileDirPath, 0777)
 	}
 
-	//初始化下载任务管理
 	downloadtaskmgr.InitTaskMgr("./task")
-	//设置如何处理下载任务
 	downloadtaskmgr.SetExecTaskFunc(DownloadFunc)
-	//下载失败处理
 	downloadtaskmgr.SetOnTaskFailed(OnDownloadFailed)
-	//开始任务循环
+
+	//start loop
 	downloadtaskmgr.Run()
 }

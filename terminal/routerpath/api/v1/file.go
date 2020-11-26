@@ -23,20 +23,20 @@ func init() {
 }
 
 func saveNewFileHandler(ctx *gin.Context) {
-	//接收到下载文件的命令,生成下载任务,加入到下载任务队列中
+	//get cmd msg
 	var downloadCmd commonmsg.DownLoadFileCmdMsg
 	if err := ctx.ShouldBindJSON(&downloadCmd); err != nil {
 		resp.ErrorResp(ctx, resp.ErrMalParams)
 		return
 	}
 
-	//先检查文件是否存在
+	//check file exist or not
 	filePath := global.FileDirPath + "/" + downloadCmd.BindNameHash + "/" + downloadCmd.FileNameHash
 	if utils.Exists(filePath) {
-		//如果文件存在,返回任务接收成功
+		//report success
 		resp.SuccessResp(ctx, nil)
 
-		//并且同时发送请求给server,告诉server下载完成
+		//post finish msg to server
 		payload := commonmsg.TerminalDownloadFinishMsg{
 			TransferTag:  downloadCmd.TransferTag,
 			FileNameHash: downloadCmd.FileNameHash,
@@ -57,7 +57,7 @@ func saveNewFileHandler(ctx *gin.Context) {
 		return
 	}
 
-	//文件不存在,就加入新的下载任务
+	//if not exist, start download
 	err := downloadtaskmgr.AddTask(
 		downloadCmd.DownloadUrl,
 		downloadCmd.TransferTag,

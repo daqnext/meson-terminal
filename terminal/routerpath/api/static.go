@@ -11,7 +11,12 @@ func init() {
 	//you must initialize this
 	common.AutoConfigRouter()
 
+	//access time
 	//common.GetMyRouter().Use(filemgr.AccessTime())
+
+	//open gzip
+	//common.GetMyRouter().Use(gzip.Gzip(gzip.DefaultCompression))
+
 	common.GetMyRouter().Use(filemgr.PreHandler())
 	// http://xxxx.com/api/static/files
 	common.GetMyRouter().StaticFS("/files", http.Dir(global.FileDirPath))

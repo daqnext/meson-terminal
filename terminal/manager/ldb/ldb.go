@@ -12,7 +12,6 @@ import (
 var DB *leveldb.DB
 
 func init() {
-	//判断文件夹是否存在
 	if !utils.Exists(global.LDBPath) {
 		err := os.Mkdir(global.LDBPath, 0700)
 		if err != nil {
@@ -36,7 +35,7 @@ func SetAccessTimeStamp(filePath string, timeStamp int64) {
 func GetLastAccessTimeStamp(filePath string) int64 {
 	data, err := DB.Get([]byte(filePath), nil)
 	if err != nil {
-		logger.Error("leveldb err", "err", err)
+		logger.Debug("leveldb data not find", "err", err)
 		return 0
 	} else {
 		i := int64(binary.LittleEndian.Uint64(data))

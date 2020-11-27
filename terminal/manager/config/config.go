@@ -121,9 +121,9 @@ func overWriteLine(line string, vname string, v string) string {
 }
 
 func ReadConfig() {
-	//先读取命令行
+	//cmd line
 	ReadFlag()
-	//读取配置文件
+	//config file
 	ReadConfigFile()
 
 	UsingToken = token
@@ -148,7 +148,7 @@ func ReadConfig() {
 }
 
 func CheckConfig() {
-	//如果用户没有输入token 提示用户输入token
+	//if did not get token, user need input token
 	var mytoken string
 	if UsingToken == "" {
 		fmt.Println("can not find your token. Please login https://meson.network")

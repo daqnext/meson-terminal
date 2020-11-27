@@ -49,7 +49,7 @@ func main() {
 		}
 	}()
 
-	//设置gin的工作模式
+	//se gin mode
 	if config.GetString("ginMode") == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -60,8 +60,8 @@ func main() {
 	//download queue
 	downloader.StartDownloadJob()
 
-	//开启api服务器
-	//查找目录下的证书文件
+	//start api server
+	//looking for ssl files
 	crtFileName := ""
 	keyFileName := ""
 	rd, err := ioutil.ReadDir("./")
@@ -141,7 +141,7 @@ func startScheduleJob() {
 	c := cron.New(cron.WithSeconds())
 	rand.Seed(time.Now().Unix())
 
-	//发送心跳包
+	//heartbeat
 	randSecond := rand.Intn(30)
 	schedule := fmt.Sprintf("%d,%d * * * * *", randSecond, randSecond+30)
 	jobId, err := c.AddFunc(schedule, statemgr.SendStateToServer)
@@ -151,7 +151,7 @@ func startScheduleJob() {
 		logger.Info("ScheduleJob-"+"SendStateToServer"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
-	//同步file文件夹大小
+	//sync folder size
 	jobId, err = c.AddFunc("0 0 * * * *", filemgr.SyncCdnDirSize)
 	if err != nil {
 		logger.Error("ScheduleJob-"+"SyncCdnDirSize"+" start error", "err", err)
@@ -159,13 +159,22 @@ func startScheduleJob() {
 		logger.Info("ScheduleJob-"+"SyncCdnDirSize"+" start", "ID", jobId, "Schedule", "0 0 * * * *")
 	}
 
-	//扫描过期文件 6小时一次
+	//scan expiration files  every 6 hours
 	schedule = fmt.Sprintf("%d 0 0,6,12,18 * * *", rand.Intn(60))
 	jobId, err = c.AddFunc(schedule, filemgr.ScanExpirationFiles)
 	if err != nil {
 		logger.Error("ScheduleJob-"+"ScanExpirationFiles"+" start error", "err", err)
 	} else {
 		logger.Info("ScheduleJob-"+"ScanExpirationFiles"+" start", "ID", jobId, "Schedule", schedule)
+	}
+
+	//delete empty folder 1time/hour
+	schedule = fmt.Sprintf("%d 0 * * * *", rand.Intn(60))
+	jobId, err = c.AddFunc(schedule, filemgr.DeleteEmptyFolder)
+	if err != nil {
+		logger.Error("ScheduleJob-"+"DeleteEmptyFolder"+" start error", "err", err)
+	} else {
+		logger.Info("ScheduleJob-"+"DeleteEmptyFolder"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
 	c.Start()

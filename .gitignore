@@ -36,3 +36,4 @@ data
 /terminal/tokenfile
 
 /terminal/testrun.go
+/terminal/build/

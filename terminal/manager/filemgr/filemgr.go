@@ -11,14 +11,11 @@ import (
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/resp"
 	"github.com/daqnext/meson-common/common/utils"
-	"github.com/daqnext/meson-terminal/terminal/gvar"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
 	"github.com/gin-gonic/gin"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -43,21 +40,31 @@ func init() {
 	}
 
 	//create std file
-	for i := 5; i <= 30; i = i + 5 {
-		fileName := global.FileDirPath + "/" + fmt.Sprintf("standardfile/%d.bin", i)
-		if utils.Exists(fileName) {
-			continue
-		}
-		f, err := os.Create(fileName)
-		if err != nil {
-			logger.Error("Create standardFile error", "err", err, "fileName", fileName)
-			continue
-		}
-		if err := f.Truncate(int64(i * 1000 * 1000)); err != nil {
-			logger.Error("Full standardFile error", "err", err, "fileName", fileName)
-		}
-		f.Close()
+	createStdFile(1, "byte")
+	createStdFile(1*1000*1000, "1")
+	createStdFile(2*1000*1000, "2")
+	createStdFile(3*1000*1000, "3")
+	createStdFile(4*1000*1000, "4")
+	createStdFile(5*1000*1000, "5")
+	createStdFile(10*1000*1000, "10")
+	createStdFile(15*1000*1000, "15")
+	createStdFile(20*1000*1000, "20")
+}
+
+func createStdFile(size int, name string) {
+	fileName := global.FileDirPath + "/" + fmt.Sprintf("standardfile/%s.bin", name)
+	if utils.Exists(fileName) {
+		return
 	}
+	f, err := os.Create(fileName)
+	if err != nil {
+		logger.Error("Create standardFile error", "err", err, "fileName", fileName)
+		return
+	}
+	if err := f.Truncate(int64(size)); err != nil {
+		logger.Error("Full standardFile error", "err", err, "fileName", fileName)
+	}
+	f.Close()
 }
 
 func SyncCdnDirSize() {
@@ -143,18 +150,6 @@ func ScanExpirationFiles() {
 			os.Remove(global.FileDirPath + "/" + v)
 			ldb.DB.Delete([]byte(v), nil)
 		}
-		//if dir is empty,delete dir
-		dirs, _ := ioutil.ReadDir(global.FileDirPath)
-		for _, v := range dirs {
-			dirName := v.Name()
-			if v.IsDir() {
-				//is dir empty
-				files, _ := ioutil.ReadDir(global.FileDirPath + "/" + dirName)
-				if len(files) == 0 {
-					os.Remove(global.FileDirPath + "/" + dirName)
-				}
-			}
-		}
 		SyncCdnDirSize()
 	default:
 		logger.Error("Request FileExpirationTime response ")
@@ -172,55 +167,69 @@ func AccessTime() gin.HandlerFunc {
 	}
 }
 
+func IsFileExist(filePath string) bool {
+	time := ldb.GetLastAccessTimeStamp(filePath)
+	if time == 0 {
+		return false
+	}
+
+	return true
+}
+
 func PreHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		requestPath := ctx.Request.URL.String()
-		filePath := strings.Replace(requestPath, "/api/static/files/", "", 1)
-		exist := utils.Exists(gvar.RootPath + "/files/" + filePath)
+		//useGzip:=false
+		//value,exist:=ctx.Request.Header["Accept-Encoding"]
+		//if exist {
+		//	for _,v:=range value{
+		//		if v=="gzip" {
+		//			useGzip=true
+		//			break
+		//		}
+		//	}
+		//}
+
+		requestPath := ctx.Request.URL.String()                               ///api/static/files/wr1cs5/vendor/@fortawesome/fontawesome-free/webfonts/fa-brands-400.woff2
+		filePath := strings.Replace(requestPath, "/api/static/files/", "", 1) // wr1cs5/vendor/@fortawesome/fontawesome-free/webfonts/fa-brands-400.woff2
+		exist := utils.Exists(global.FileDirPath + "/" + filePath)
+		//exist:=IsFileExist(filePath)
 		if exist {
 			//set access time
 			go ldb.SetAccessTimeStamp(filePath, time.Now().Unix())
 			return
 		}
 
-		//not exist
-		extension := filepath.Ext(filePath)
-		fileHash := utils.GetStringHash(filePath)
-
-		// get referer from request header
-		referer := ctx.Request.Referer()
-		if referer == "" {
-			ctx.Abort()
-			return
-		}
-		//https://f39e5277e178ccb4cecfdf40b9ecaf95.shoppynext.com:19091/api/static/files/3776229933cd27f6c629269afeaf5f2f/1f71cc1221ac92cd4d07e01a39abc515.css
-		values := strings.Split(referer, "/api/static/files/")
-		refererFile := values[1]
-		values = strings.Split(refererFile, "/")
-		bindName := values[0]
-
-		exist = utils.Exists(gvar.RootPath + "/files/" + bindName + "/" + fileHash + extension)
-		if exist {
-			ctx.Redirect(302, "/api/static/files/"+bindName+"/"+fileHash+extension)
-			ctx.Abort()
-			return
-		}
+		//if not exist
+		strs := strings.Split(filePath, "/")
+		bindName := strs[0]
+		fileName := strings.Replace(filePath, bindName+"/", "", 1)
 
 		//redirect to server
-		url := global.RequestNotExistFileUrl + "/" + bindName + "/" + filePath
+		url := global.RequestNotExistFileUrl + "/" + bindName + "/" + fileName
+		logger.Debug("back to server", "url", url)
 		if config.GetString("apiProto") == "http" {
-			url = "http://127.0.0.1:9090/api/v1/terminalfindfile" + "/" + bindName + "/" + filePath
+			url = "http://127.0.0.1:9090/api/v1/terminalfindfile" + "/" + bindName + "/" + fileName
 		}
 		ctx.Redirect(302, url)
 		ctx.Abort()
 
-		//下载文件
-		localFilePath := gvar.RootPath + "/files/" + bindName + "/" + fileHash + extension
+		//download file
+		localFilePath := global.FileDirPath + "/" + bindName + "/" + fileName
 		err := downloadtaskmgr.DownLoadFile(url, localFilePath)
 		if err != nil {
 			logger.Error("download file url="+url+"error", "err", err)
 			ctx.Abort()
+			return
 		}
-		ldb.SetAccessTimeStamp(bindName+"/"+fileHash+extension, time.Now().Unix())
+		ldb.SetAccessTimeStamp(bindName+"/"+fileName, time.Now().Unix())
+
 	}
+}
+
+func DeleteEmptyFolder() {
+	utils.DeleteEmptyFolders(global.FileDirPath)
+}
+
+func DeleteFolder(folderPath string) error {
+	return os.RemoveAll(global.FileDirPath + "/" + folderPath)
 }

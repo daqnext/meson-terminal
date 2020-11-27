@@ -178,6 +178,16 @@ func IsFileExist(filePath string) bool {
 
 func PreHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		//useGzip:=false
+		//value,exist:=ctx.Request.Header["Accept-Encoding"]
+		//if exist {
+		//	for _,v:=range value{
+		//		if v=="gzip" {
+		//			useGzip=true
+		//			break
+		//		}
+		//	}
+		//}
 
 		requestPath := ctx.Request.URL.String()                               ///api/static/files/wr1cs5/vendor/@fortawesome/fontawesome-free/webfonts/fa-brands-400.woff2
 		filePath := strings.Replace(requestPath, "/api/static/files/", "", 1) // wr1cs5/vendor/@fortawesome/fontawesome-free/webfonts/fa-brands-400.woff2

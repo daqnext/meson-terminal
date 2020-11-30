@@ -1,7 +1,6 @@
 package routerpath
 
 import (
-	"fmt"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/gin-contrib/cors"
@@ -28,9 +27,7 @@ func FileRequestApi(addr string, crtFileName string, keyFileName string) {
 		hostName := strings.Split(ctx.Request.Host, ".")[0]
 		hostInfo := strings.Split(hostName, "-")
 		bindName := hostInfo[0]
-		fmt.Println(bindName)
 		fileName := ctx.Request.URL.String()
-		fmt.Println(fileName)
 
 		if bindName == "0" {
 			targetUrl := "http://127.0.0.1:" + global.ApiPort

@@ -12,6 +12,7 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
+	"github.com/daqnext/meson-terminal/terminal/routerpath"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 	"io/ioutil"
@@ -28,8 +29,6 @@ import (
 func init() {
 	terminallogger.InitLogger()
 }
-
-var healthPort = 0
 
 func main() {
 	config.CheckConfig()
@@ -87,33 +86,26 @@ func main() {
 		startScheduleJob()
 	})
 
-	addr := fmt.Sprintf(":%s", config.UsingPort)
-	//logger.Info("Terminal Is Running on Port:" + config.UsingPort)
-	if config.GetString("apiProto") == "http" {
-		healthPort, _ = strconv.Atoi(config.UsingPort)
-		common.GinRouter.Run(addr) // only in local dev
-	} else {
-		//
-		go func() {
-			port, _ := strconv.Atoi(config.UsingPort)
-			for true {
-				port++
-				if port > 65535 {
-					port = 19080
-				}
-				healthPort = port
-				httpAddr := fmt.Sprintf(":%d", port)
-				err := common.GinRouter.Run(httpAddr)
-				if err != nil {
-					continue
-				}
+	//start api for server
+	go func() {
+		port, _ := strconv.Atoi(config.UsingPort)
+		for true {
+			port++
+			if port > 65535 {
+				port = 19080
 			}
-		}()
-		err = common.GinRouter.RunTLS(addr, "./"+crtFileName, "./"+keyFileName)
-		if err != nil {
-			logger.Error("server start error", "err", err)
+			global.ApiPort = strconv.Itoa(port)
+			httpAddr := fmt.Sprintf(":%d", port)
+			err := common.GinRouter.Run(httpAddr)
+			if err != nil {
+				continue
+			}
 		}
-	}
+	}()
+
+	//start api for fileRequest
+	addr := fmt.Sprintf(":%s", config.UsingPort)
+	routerpath.FileRequestApi(addr, crtFileName, keyFileName)
 }
 
 func CheckGinStart(onStart func()) {
@@ -123,7 +115,7 @@ func CheckGinStart(onStart func()) {
 			header := map[string]string{
 				"Content-Type": "application/json",
 			}
-			url := fmt.Sprintf("http://127.0.0.1:%d/api/testapi/health", healthPort)
+			url := fmt.Sprintf("http://127.0.0.1:%s/api/testapi/health", global.ApiPort)
 			_, err := httputils.Request("GET", url, nil, header)
 			if err != nil {
 				logger.Debug("health check error", "err", err)
@@ -160,7 +152,8 @@ func startScheduleJob() {
 	}
 
 	//scan expiration files  every 6 hours
-	schedule = fmt.Sprintf("%d 0 0,6,12,18 * * *", rand.Intn(60))
+	//schedule = fmt.Sprintf("%d 0 0,6,12,18 * * *", rand.Intn(60))
+	schedule = fmt.Sprintf("%d * * * * *", rand.Intn(60))
 	jobId, err = c.AddFunc(schedule, filemgr.ScanExpirationFiles)
 	if err != nil {
 		logger.Error("ScheduleJob-"+"ScanExpirationFiles"+" start error", "err", err)

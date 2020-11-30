@@ -3,8 +3,8 @@ module github.com/daqnext/meson-terminal
 go 1.15
 
 require (
-	github.com/daqnext/meson-common v0.1.2
-	github.com/gin-contrib/gzip v0.0.3
+	github.com/daqnext/meson-common v1.0.3
+	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.6.3
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil v2.20.5+incompatible

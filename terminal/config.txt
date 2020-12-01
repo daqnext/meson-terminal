@@ -3,7 +3,7 @@ token=
 
 # server port DO NOT run in 80 or 443
 # open this port on your firewall
-port= 19091
+port=
 
 # space limit (Maximum allowable space for Terminal GB)
 spacelimit = 200

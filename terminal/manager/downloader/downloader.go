@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"github.com/daqnext/meson-common/common"
 	"github.com/daqnext/meson-common/common/accountmgr"
 	"github.com/daqnext/meson-common/common/commonmsg"
 	"github.com/daqnext/meson-common/common/downloadtaskmgr"
@@ -15,18 +16,22 @@ import (
 )
 
 func DownloadFunc(task *downloadtaskmgr.DownloadTask) error {
+
 	dir := global.FileDirPath + "/" + task.BindNameHash
 	if !utils.Exists(dir) {
 		os.Mkdir(dir, 0777)
 	}
-	filePath := dir + "/" + task.FileNameHash
+
+	fileName := utils.FileAddMark(task.FileNameHash, common.RedirectMark)
+
+	filePath := dir + "/" + fileName
 
 	err := downloadtaskmgr.DownLoadFile(task.TargetUrl, filePath)
 	if err != nil {
 		logger.Error("download file url="+task.TargetUrl+"error", "err", err)
 		return err
 	}
-	ldb.SetAccessTimeStamp(task.BindNameHash+"/"+task.FileNameHash, time.Now().Unix())
+	ldb.SetAccessTimeStamp(task.BindNameHash+"/"+fileName, time.Now().Unix())
 	//get file size
 	fileInfo, err := os.Stat(filePath)
 	if err == nil {

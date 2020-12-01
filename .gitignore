@@ -37,3 +37,5 @@ data
 
 /terminal/testrun.go
 /terminal/build/
+/terminal/routerpath/api/selfsigned.key
+/terminal/routerpath/api/selfsigned.crt

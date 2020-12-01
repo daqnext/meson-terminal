@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/daqnext/meson-common/common/accountmgr"
 	"github.com/daqnext/meson-common/common/commonmsg"
-	"github.com/daqnext/meson-common/common/downloadtaskmgr"
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/resp"
@@ -150,6 +149,7 @@ func ScanExpirationFiles() {
 			os.Remove(global.FileDirPath + "/" + v)
 			ldb.DB.Delete([]byte(v), nil)
 		}
+		DeleteEmptyFolder()
 		SyncCdnDirSize()
 	default:
 		logger.Error("Request FileExpirationTime response ")
@@ -178,21 +178,13 @@ func IsFileExist(filePath string) bool {
 
 func PreHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		//useGzip:=false
-		//value,exist:=ctx.Request.Header["Accept-Encoding"]
-		//if exist {
-		//	for _,v:=range value{
-		//		if v=="gzip" {
-		//			useGzip=true
-		//			break
-		//		}
-		//	}
-		//}
+		//hostName:=strings.Split(ctx.Request.Host,".")[0]
+		//hostInfo:=strings.Split(hostName,"-")
+		//bindName:=hostInfo[0]
 
-		requestPath := ctx.Request.URL.String()                               ///api/static/files/wr1cs5/vendor/@fortawesome/fontawesome-free/webfonts/fa-brands-400.woff2
-		filePath := strings.Replace(requestPath, "/api/static/files/", "", 1) // wr1cs5/vendor/@fortawesome/fontawesome-free/webfonts/fa-brands-400.woff2
+		requestPath := ctx.Request.URL.String()
+		filePath := strings.Replace(requestPath, "/api/static/files/", "", 1)
 		exist := utils.Exists(global.FileDirPath + "/" + filePath)
-		//exist:=IsFileExist(filePath)
 		if exist {
 			//set access time
 			go ldb.SetAccessTimeStamp(filePath, time.Now().Unix())
@@ -200,29 +192,10 @@ func PreHandler() gin.HandlerFunc {
 		}
 
 		//if not exist
-		strs := strings.Split(filePath, "/")
-		bindName := strs[0]
-		fileName := strings.Replace(filePath, bindName+"/", "", 1)
-
 		//redirect to server
-		url := global.RequestNotExistFileUrl + "/" + bindName + "/" + fileName
-		logger.Debug("back to server", "url", url)
-		if config.GetString("apiProto") == "http" {
-			url = "http://127.0.0.1:9090/api/v1/terminalfindfile" + "/" + bindName + "/" + fileName
-		}
-		ctx.Redirect(302, url)
+		serverUrl := global.ServerDomain + "/api/cdn/" + filePath
+		ctx.Redirect(302, serverUrl)
 		ctx.Abort()
-
-		//download file
-		localFilePath := global.FileDirPath + "/" + bindName + "/" + fileName
-		err := downloadtaskmgr.DownLoadFile(url, localFilePath)
-		if err != nil {
-			logger.Error("download file url="+url+"error", "err", err)
-			ctx.Abort()
-			return
-		}
-		ldb.SetAccessTimeStamp(bindName+"/"+fileName, time.Now().Unix())
-
 	}
 }
 

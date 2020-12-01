@@ -59,7 +59,7 @@ func GetMachineState() (*commonmsg.TerminalStatesMsg, error) {
 	}
 
 	if State.Port == "" {
-		State.Port = config.GetString("port")
+		State.Port = config.UsingPort
 	}
 
 	return State, nil

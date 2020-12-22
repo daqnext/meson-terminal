@@ -43,12 +43,8 @@ func GetMachineState() (*commonmsg.TerminalStatesMsg, error) {
 		State.DiskAvailable = d.Free
 	}
 
-	if filemgr.CdnSpaceLimit > State.DiskTotal {
-		State.CdnDiskTotal = State.DiskTotal * 2 / 3
-	} else {
-		State.CdnDiskTotal = filemgr.CdnSpaceLimit
-	}
-	State.CdnDiskAvailable = State.CdnDiskTotal - filemgr.CdnSpaceUsed
+	State.CdnDiskTotal = uint64(filemgr.CdnSpaceLimit)
+	State.CdnDiskAvailable = State.CdnDiskTotal - uint64(filemgr.CdnSpaceUsed)
 
 	if State.MacAddr == "" {
 		if macAddr, err := utils.GetMainMacAddress(); err != nil {
@@ -61,6 +57,8 @@ func GetMachineState() (*commonmsg.TerminalStatesMsg, error) {
 	if State.Port == "" {
 		State.Port = config.UsingPort
 	}
+
+	State.Version = global.Version
 
 	return State, nil
 }
@@ -81,7 +79,7 @@ func SendStateToServer() {
 		logger.Error("send terminalState to server error", "err", err)
 		return
 	}
-	logger.Debug("response form server", "response string", string(content))
+	//logger.Debug("response form server", "response string", string(content))
 	var respBody resp.RespBody
 	if err := json.Unmarshal(content, &respBody); err != nil {
 		logger.Error("response from terminal unmarshal error", "err", err)
@@ -90,9 +88,11 @@ func SendStateToServer() {
 
 	switch respBody.Status {
 	case 0:
-		logger.Debug("send State success")
+		//logger.Debug("send State success")
 	case 101: //auth error
 		logger.Fatal("auth error,please restart terminal with correct username and password")
+	case 106: //low version
+		logger.Fatal("Your version need upgrade. Please download new version from meson.network ")
 	default:
 		logger.Error("server error")
 	}

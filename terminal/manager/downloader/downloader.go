@@ -16,14 +16,11 @@ import (
 )
 
 func DownloadFunc(task *downloadtaskmgr.DownloadTask) error {
-
 	dir := global.FileDirPath + "/" + task.BindNameHash
 	if !utils.Exists(dir) {
 		os.Mkdir(dir, 0777)
 	}
-
 	fileName := utils.FileAddMark(task.FileNameHash, common.RedirectMark)
-
 	filePath := dir + "/" + fileName
 
 	err := downloadtaskmgr.DownLoadFile(task.TargetUrl, filePath)
@@ -35,7 +32,7 @@ func DownloadFunc(task *downloadtaskmgr.DownloadTask) error {
 	//get file size
 	fileInfo, err := os.Stat(filePath)
 	if err == nil {
-		filemgr.CdnSpaceUsed += uint64(fileInfo.Size())
+		filemgr.CdnSpaceUsed += fileInfo.Size()
 	}
 
 	//post download finish msg to server

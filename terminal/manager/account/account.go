@@ -9,6 +9,7 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 var Token string
@@ -52,7 +53,8 @@ func TerminalLogin(url string, token string) {
 		logger.Debug("login success! ", "token", Token)
 		logger.Info("login success! Terminal start...")
 		accountmgr.Token = Token
-		config.RecordTokenAndPortToFile(Token, config.UsingPort)
+		space := strconv.Itoa(config.UsingSpaceLimit)
+		config.RecordConfigToFile(Token, config.UsingPort, space)
 	default:
 		logger.Fatal("Token error,please login the website to get token")
 	}

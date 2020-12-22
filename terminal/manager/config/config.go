@@ -42,7 +42,7 @@ func init() {
 	ReadConfig()
 }
 
-func RecordTokenAndPortToFile(token string, port string) {
+func RecordConfigToFile(token string, port string, space string) {
 	of, err := os.Open(ConfigPath)
 	if err != nil {
 		logger.Error("open file record token and port error", "err")
@@ -80,6 +80,7 @@ func RecordTokenAndPortToFile(token string, port string) {
 
 		newLine = overWriteLine(newLine, "token", token)
 		newLine = overWriteLine(newLine, "port", port)
+		newLine = overWriteLine(newLine, "spacelimit", space)
 
 		_, err = nf.WriteString(newLine + "\n")
 		if err != nil {
@@ -185,6 +186,20 @@ func CheckConfig() {
 		UsingPort = myport
 	}
 
+	var space string
+	if UsingSpaceLimit == 0 {
+		fmt.Println("Please input the disk space you want to provide.The more space you provide, the higher profit you get")
+		fmt.Printf("For example you provide 100GB.Please input 100 (At least 10GB,default 40GB. Less than 40GB will reduce your profit):")
+		fmt.Scanln(&space)
+		num, err := strconv.Atoi(space)
+		if err != nil {
+			UsingSpaceLimit = 40
+			fmt.Println("input space error,server will use default 40G.You can modify this value in config.txt")
+			return
+		}
+		UsingSpaceLimit = num
+	}
+
 }
 
 func ReadFlag() {
@@ -207,7 +222,7 @@ func ReadConfigFile() {
 	SetDefault(Token, "")
 	SetDefault(Port, "")
 	SetDefault(ServerDomain, "https://coldcdn.com")
-	SetDefault(SpaceLimit, "200")
+	SetDefault(SpaceLimit, "0")
 	SetDefault(ApiProto, "https")
 	SetDefault(LogLevel, "4")
 	SetDefault(GinMode, "release")

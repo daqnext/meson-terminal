@@ -28,10 +28,12 @@ import (
 
 func init() {
 	terminallogger.InitLogger()
+
 }
 
 func main() {
 	config.CheckConfig()
+	filemgr.Init()
 
 	//login
 	account.TerminalLogin(global.TerminalLoginUrl, config.UsingToken)
@@ -152,8 +154,8 @@ func startScheduleJob() {
 	}
 
 	//scan expiration files  every 6 hours
-	schedule = fmt.Sprintf("%d 0 0,6,12,18 * * *", rand.Intn(60))
-	//schedule = fmt.Sprintf("%d * * * * *", rand.Intn(60))
+	//schedule = fmt.Sprintf("%d 0 0,6,12,18 * * *", rand.Intn(60))
+	schedule = fmt.Sprintf("%d * * * * *", rand.Intn(60))
 	jobId, err = c.AddFunc(schedule, filemgr.ScanExpirationFiles)
 	if err != nil {
 		logger.Error("ScheduleJob-"+"ScanExpirationFiles"+" start error", "err", err)

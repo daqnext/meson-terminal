@@ -4,7 +4,10 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 )
 
+const Version = "0.1.2"
+
 const FileDirPath = "./files"
+const SpaceHolderDir = "./spaceholder"
 const LDBPath = "./ldb"
 const LDBFile = "./ldb/index"
 

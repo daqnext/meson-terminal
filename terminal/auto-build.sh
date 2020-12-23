@@ -1,7 +1,7 @@
 #!/bin/sh
 # Copyright 2020 Daqnext Foundation Ltd.
 
-VERSION="v0.1.1"
+VERSION="v0.1.2"
 COPY_FILES=("config.txt" "*.shoppynext.com_key.key" "*.shoppynext.com_chain.crt")
 
 generate_tar() {

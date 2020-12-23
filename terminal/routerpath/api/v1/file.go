@@ -29,34 +29,10 @@ func saveNewFileHandler(ctx *gin.Context) {
 		return
 	}
 
-	//check file exist or not
-	//filePath := global.FileDirPath + "/" + downloadCmd.BindNameHash + "/" + downloadCmd.FileNameHash
-	//if utils.Exists(filePath) {
-	//	//report success
-	//	resp.SuccessResp(ctx, nil)
-	//
-	//	//post finish msg to server
-	//	payload := commonmsg.TerminalDownloadFinishMsg{
-	//		TransferTag:  downloadCmd.TransferTag,
-	//		FileNameHash: downloadCmd.FileNameHash,
-	//		BindNameHash: downloadCmd.BindNameHash,
-	//		Continent:    downloadCmd.Continent,
-	//		Country:      downloadCmd.Country,
-	//		Area:         downloadCmd.Area,
-	//	}
-	//	header := map[string]string{
-	//		"Content-Type":  "application/json",
-	//		"Authorization": "Bearer " + accountmgr.Token,
-	//	}
-	//	_, err := httputils.Request("POST", global.ReportDownloadFinishUrl, payload, header)
-	//	if err != nil {
-	//		logger.Error("send downloadfinish msg to server error", "err", err)
-	//	}
-	//
-	//	return
-	//}
+	//check disk space
+	fileSize := downloadCmd.FileSize
+	filemgr.GenDiskSpace(fileSize)
 
-	//if not exist, start download
 	err := downloadtaskmgr.AddTask(
 		downloadCmd.DownloadUrl,
 		downloadCmd.TransferTag,

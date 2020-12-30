@@ -41,8 +41,8 @@ var isNewStart = true
 func Init() {
 	CdnSpaceLimit = int64(config.UsingSpaceLimit * 1000000000)
 
-	if CdnSpaceLimit < 10*1000000000 {
-		logger.Fatal("You should provide 10GB disk space at least.")
+	if CdnSpaceLimit < 40*1000000000 && config.GetString("runMode") != "local" {
+		logger.Fatal("40GB disk space is the minimum.")
 	}
 
 	//is dir exist
@@ -50,6 +50,13 @@ func Init() {
 		err := os.Mkdir(global.FileDirPath, 0777)
 		if err != nil {
 			logger.Fatal("tempfile dir create failed, please create dir " + global.FileDirPath + " by manual")
+		}
+	}
+
+	if !utils.Exists(global.SpaceHolderDir) {
+		err := os.Mkdir(global.SpaceHolderDir, 0777)
+		if err != nil {
+			logger.Fatal("spaceHolder dir create failed, please create dir " + global.SpaceHolderDir + " by manual")
 		}
 	}
 
@@ -70,22 +77,25 @@ func Init() {
 	createStdFile(100*1000*1000, "100")
 
 	SyncCdnDirSize()
+	SyncHoldFileDirSize()
 
 	d, err := disk.Usage("./")
 	if err != nil {
 		logger.Error("get disk usage error", "err", err)
 	}
 	free := d.Free
-	total := CdnSpaceUsed + int64(free)
+
+	total := CdnSpaceUsed + HoldFileSize + int64(free)
 	if total < CdnSpaceLimit {
 		logger.Fatal("Disk space is smaller than the value you set")
 	}
 
 	fmt.Println("Initializing system... ")
-	fmt.Println("This process will take several minutes, depending on the size of the cdn space you provide")
+	//fmt.Println("This process will take several minutes, depending on the size of the cdn space you provide")
 
 	FullSpace()
 	isNewStart = false
+
 }
 
 func FullSpace() {
@@ -113,20 +123,23 @@ func FullSpace() {
 		SpaceHoldFiles = append(SpaceHoldFiles, global.SpaceHolderDir+"/"+file.Name())
 		HoldFileSize += file.Size()
 	}
+	lock.Unlock()
 
 	LeftSpace = CdnSpaceLimit - CdnSpaceUsed - HoldFileSize
-	for LeftSpace-eachHoldFileSize > headSpace {
-		createSpaceHoldFile()
-		LeftSpace = CdnSpaceLimit - CdnSpaceUsed - HoldFileSize
+	go func() {
+		for LeftSpace-eachHoldFileSize > headSpace {
+			lock.Lock()
+			createSpaceHoldFile()
+			LeftSpace = CdnSpaceLimit - CdnSpaceUsed - HoldFileSize
 
-		if isNewStart {
-			percent := (float64(CdnSpaceLimit-LeftSpace) / float64(CdnSpaceLimit)) * float64(100)
-			fmt.Fprintf(os.Stdout, "scaning... %3.0f%%\r", percent)
+			if isNewStart {
+				percent := (float64(CdnSpaceLimit-LeftSpace) / float64(CdnSpaceLimit)) * float64(100)
+				fmt.Fprintf(os.Stdout, "scaning... %3.0f%%\r", percent)
+			}
+			lock.Unlock()
 		}
+	}()
 
-	}
-
-	lock.Unlock()
 }
 
 func createSpaceHoldFile() {
@@ -138,10 +151,9 @@ func createSpaceHoldFile() {
 		return
 	}
 	defer f.Close()
-	if err := f.Truncate(int64(eachHoldFileSize)); err != nil {
-		logger.Error("Full holderFile error", "err", err, "fileName", fileName)
-	}
-
+	//if err := f.Truncate(int64(eachHoldFileSize)); err != nil {
+	//	logger.Error("Full holderFile error", "err", err, "fileName", fileName)
+	//}
 	for i := 0; i < 100; i++ {
 		f.Write(array)
 	}
@@ -168,6 +180,14 @@ func createStdFile(size int, name string) {
 
 	//content:=make([]byte,size)
 	//f.Write(content)
+}
+
+func SyncHoldFileDirSize() {
+	size, err := utils.GetDirSize(global.SpaceHolderDir)
+	if err != nil {
+		logger.Error("get dir size error", "err", err)
+	}
+	HoldFileSize = int64(size)
 }
 
 func SyncCdnDirSize() {
@@ -319,13 +339,14 @@ func GenDiskSpace(fileSize int64) {
 	for LeftSpace <= fileSize+headSpace {
 		holdFileCount := len(SpaceHoldFiles)
 		fileName := global.SpaceHolderDir + fmt.Sprintf("/%010d.bin", holdFileCount)
-		err := os.Remove(fileName)
-		if err != nil {
-			logger.Error("delete space hold file error", "err", err)
+		if utils.Exists(fileName) {
+			err := os.Remove(fileName)
+			if err != nil {
+				logger.Error("delete space hold file error", "err", err)
+			}
+			SpaceHoldFiles = SpaceHoldFiles[:holdFileCount-1]
+			LeftSpace += eachHoldFileSize
 		}
-		SpaceHoldFiles = SpaceHoldFiles[:holdFileCount-1]
-
-		LeftSpace += eachHoldFileSize
 	}
 	lock.Unlock()
 }

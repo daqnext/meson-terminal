@@ -18,3 +18,6 @@ loglevel= 6
 
 #ginMode debug/release
 ginMode = debug
+
+#runMode local/server
+runMode = local

@@ -3,8 +3,8 @@ module github.com/daqnext/meson-terminal
 go 1.15
 
 require (
-	github.com/aviddiviner/gin-limit v0.0.0-20170918012823-43b5f79762c1
-	github.com/daqnext/meson-common v1.0.7
+	github.com/daqnext/meson-common v1.0.9
+	github.com/fvbock/endless v0.0.0-20170109170031-447134032cb6
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-contrib/gzip v0.0.3
 	github.com/gin-gonic/gin v1.6.3

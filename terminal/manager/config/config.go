@@ -171,30 +171,31 @@ func CheckConfig() {
 		if err != nil {
 			UsingPort = "19091"
 			fmt.Println("input port error,server will be run in port:19091")
-			return
+			//return
+		} else {
+			UsingPort = myport
+			if num < 1 || num > 65535 {
+				UsingPort = "19091"
+				fmt.Println("input port error,server will be run in port:19091")
+				//return
+			}
+			if num == 80 || num == 443 {
+				UsingPort = "19091"
+				fmt.Printf("port CAN NOT be %d,server will be run in port:19091 \n", num)
+				//return
+			}
 		}
-		if num < 1 || num > 65535 {
-			UsingPort = "19091"
-			fmt.Println("input port error,server will be run in port:19091")
-			return
-		}
-		if num == 80 || num == 443 {
-			UsingPort = "19091"
-			fmt.Printf("port CAN NOT be %d,server will be run in port:19091 \n", num)
-			return
-		}
-		UsingPort = myport
 	}
 
 	var space string
 	if UsingSpaceLimit == 0 {
-		fmt.Println("Please input the disk space you want to provide.The more space you provide, the higher profit you get")
-		fmt.Printf("For example you provide 100GB.Please input 100 (At least 10GB,default 40GB. Less than 40GB will reduce your profit):")
+		fmt.Println("Please input the disk space you want to provide.The more space you provide, the higher profit you will get")
+		fmt.Printf("For example if you provide 100GB, please input 100 (40GB disk space is the minimum, default will be 80GB):")
 		fmt.Scanln(&space)
 		num, err := strconv.Atoi(space)
 		if err != nil {
-			UsingSpaceLimit = 40
-			fmt.Println("input space error,server will use default 40G.You can modify this value in config.txt")
+			UsingSpaceLimit = 80
+			fmt.Println("input space error,server will use default 80G.You can modify this value in config.txt")
 			return
 		}
 		UsingSpaceLimit = num

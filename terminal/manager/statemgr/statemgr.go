@@ -12,10 +12,12 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
+	"github.com/daqnext/meson-terminal/terminal/manager/versionmgr"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/mem"
+	"time"
 )
 
 var State = &commonmsg.TerminalStatesMsg{}
@@ -30,7 +32,15 @@ func GetMachineState() (*commonmsg.TerminalStatesMsg, error) {
 	if State.CPU == "" {
 		if c, err := cpu.Info(); err == nil {
 			State.CPU = c[0].ModelName
+			cpu.Percent(time.Second, false)
 		}
+	}
+
+	percent, err := cpu.Percent(time.Second, false)
+	if err != nil {
+		logger.Error("failed to get cup usage", "err", err)
+	} else {
+		State.CpuUsage = percent[0]
 	}
 
 	if v, err := mem.VirtualMemory(); err == nil {
@@ -58,7 +68,7 @@ func GetMachineState() (*commonmsg.TerminalStatesMsg, error) {
 		State.Port = config.UsingPort
 	}
 
-	State.Version = global.Version
+	State.Version = versionmgr.Version
 
 	return State, nil
 }

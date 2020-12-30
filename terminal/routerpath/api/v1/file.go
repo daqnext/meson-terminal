@@ -6,7 +6,10 @@ import (
 	"github.com/daqnext/meson-common/common/downloadtaskmgr"
 	"github.com/daqnext/meson-common/common/resp"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
+	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/gin-gonic/gin"
+	"strconv"
+	"time"
 )
 
 func init() {
@@ -19,6 +22,10 @@ func init() {
 
 	// /api/v1/file/deletefolder
 	common.GetMyRouter().POST("/deletefolder", deleteFolderHandler)
+
+	// /api/v1/file/pause
+	common.GetMyRouter().GET("/pause/:time", pauseHandler)
+
 }
 
 func saveNewFileHandler(ctx *gin.Context) {
@@ -71,4 +78,18 @@ func deleteFolderHandler(ctx *gin.Context) {
 	}
 
 	resp.SuccessResp(ctx, nil)
+}
+
+func pauseHandler(ctx *gin.Context) {
+	pauseTimeStr := ctx.Param("time")
+	pauseTime, err := strconv.Atoi(pauseTimeStr)
+	if err != nil {
+		pauseTime = 4
+	}
+	global.PauseTransfer = true
+	resp.SuccessResp(ctx, nil)
+	go func() {
+		time.Sleep(time.Second * time.Duration(pauseTime))
+		global.PauseTransfer = false
+	}()
 }

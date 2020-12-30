@@ -42,3 +42,7 @@ func GetLastAccessTimeStamp(filePath string) int64 {
 		return i
 	}
 }
+
+func Close() {
+	DB.Close()
+}

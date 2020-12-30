@@ -10,15 +10,15 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
+	"github.com/daqnext/meson-terminal/terminal/manager/httpserver"
 	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
+	"github.com/daqnext/meson-terminal/terminal/manager/versionmgr"
 	"github.com/daqnext/meson-terminal/terminal/routerpath"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
-	"io/ioutil"
 	"math/rand"
 	"strconv"
-	"strings"
 	"time"
 
 	//api router
@@ -28,58 +28,41 @@ import (
 
 func init() {
 	terminallogger.InitLogger()
-
 }
 
 func main() {
+	//version check
+	versionmgr.CheckVersion()
+
 	config.CheckConfig()
 	filemgr.Init()
 
 	//login
 	account.TerminalLogin(global.TerminalLoginUrl, config.UsingToken)
 
+	//waiting for confirm msg
 	go func() {
 		select {
 		case flag := <-account.ServerRequestTest:
 			if flag == true {
 				logger.Info("net connect confirmed")
 				account.ServerRequestTest = nil
+				global.TerminalIsRunning = true
 			}
 		case <-time.After(30 * time.Second):
 			logger.Fatal("net connect error,please make sure your port is open")
 		}
 	}()
 
-	//se gin mode
-	if config.GetString("ginMode") == "release" {
-		gin.SetMode(gin.ReleaseMode)
+	//set gin mode
+	if config.GetString("ginMode") == "debug" {
+		gin.SetMode(gin.DebugMode)
 	}
 
 	//sync cdn dir size
 	filemgr.SyncCdnDirSize()
-
 	//download queue
 	downloader.StartDownloadJob()
-
-	//start api server
-	//looking for ssl files
-	crtFileName := ""
-	keyFileName := ""
-	rd, err := ioutil.ReadDir("./")
-	if err != nil {
-		logger.Error("ReadDir error", "err", err)
-	}
-	for _, fi := range rd {
-		if !fi.IsDir() {
-			filename := fi.Name()
-			if strings.Contains(filename, ".pem") || strings.Contains(filename, ".crt") {
-				crtFileName = filename
-			}
-			if strings.Contains(filename, ".key") {
-				keyFileName = filename
-			}
-		}
-	}
 
 	CheckGinStart(func() {
 		logger.Info("Terminal Is Running on Port:" + config.UsingPort)
@@ -88,7 +71,7 @@ func main() {
 		startScheduleJob()
 	})
 
-	//start api for server
+	//start http api for server
 	go func() {
 		port, _ := strconv.Atoi(config.UsingPort)
 		for true {
@@ -98,16 +81,25 @@ func main() {
 			}
 			global.ApiPort = strconv.Itoa(port)
 			httpAddr := fmt.Sprintf(":%d", port)
-			err := common.GinRouter.Run(httpAddr)
+			httpGinServer := common.GinRouter
+			err := httpserver.StartHttpServer(httpAddr, httpGinServer)
 			if err != nil {
 				continue
 			}
 		}
 	}()
 
-	//start api for fileRequest
-	addr := fmt.Sprintf(":%s", config.UsingPort)
-	routerpath.FileRequestApi(addr, crtFileName, keyFileName)
+	//start https api server
+	//looking for ssl files
+	crtFileName := "./host_chain.crt"
+	keyFileName := "./host_key.key"
+	httpsAddr := fmt.Sprintf(":%s", config.UsingPort)
+	httpsGinServer := routerpath.FileRequestServer()
+	// https server
+	err := httpserver.StartHttpsServer(httpsAddr, crtFileName, keyFileName, httpsGinServer)
+	if err != nil {
+		logger.Error("https server start error", "err", err)
+	}
 }
 
 func CheckGinStart(onStart func()) {
@@ -145,6 +137,16 @@ func startScheduleJob() {
 		logger.Info("ScheduleJob-"+"SendStateToServer"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
+	//version check
+	randSecond = rand.Intn(60)
+	schedule = fmt.Sprintf("%d %d * * * *", randSecond, randSecond)
+	jobId, err = c.AddFunc(schedule, versionmgr.CheckVersion)
+	if err != nil {
+		logger.Error("ScheduleJob-"+"VersionCheck"+" start error", "err", err)
+	} else {
+		logger.Info("ScheduleJob-"+"VersionCheck"+" start", "ID", jobId, "Schedule", schedule)
+	}
+
 	//sync folder size
 	jobId, err = c.AddFunc("0 0 * * * *", filemgr.SyncCdnDirSize)
 	if err != nil {
@@ -154,8 +156,8 @@ func startScheduleJob() {
 	}
 
 	//scan expiration files  every 6 hours
-	//schedule = fmt.Sprintf("%d 0 0,6,12,18 * * *", rand.Intn(60))
-	schedule = fmt.Sprintf("%d * * * * *", rand.Intn(60))
+	schedule = fmt.Sprintf("%d 0 0,6,12,18 * * *", rand.Intn(60))
+	//schedule = fmt.Sprintf("%d * * * * *", rand.Intn(60))
 	jobId, err = c.AddFunc(schedule, filemgr.ScanExpirationFiles)
 	if err != nil {
 		logger.Error("ScheduleJob-"+"ScanExpirationFiles"+" start error", "err", err)

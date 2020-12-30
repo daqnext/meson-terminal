@@ -1,0 +1,51 @@
+package versionmgr
+
+import (
+	"encoding/json"
+	"github.com/daqnext/meson-common/common/httputils"
+	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-common/common/resp"
+	"github.com/daqnext/meson-terminal/terminal/manager/global"
+	"runtime"
+)
+
+const Version = "0.1.3"
+
+func GetOSInfo() (arch string, os string) {
+	arch = "amd64"
+	switch runtime.GOARCH {
+	case "386":
+		arch = "386"
+	}
+
+	os = "linux"
+	switch runtime.GOOS {
+	case "windows":
+		os = "windows"
+	case "darwin":
+		os = "darwin"
+	}
+
+	return arch, os
+}
+
+func GetTerminalVersionFromServer() (latestVersion string, allowVersion string, err error) {
+	//check is there new version or not
+	logger.Info("Check Version...")
+	header := map[string]string{
+		"Content-Type": "application/json",
+	}
+	respCtx, err := httputils.Request("GET", global.RequestCheckVersion, nil, header)
+	if err != nil {
+		logger.Error("Request FileExpirationTime error", "err", err)
+		return "", "", err
+	}
+	var respBody resp.RespBody
+	if err := json.Unmarshal(respCtx, &respBody); err != nil {
+		logger.Error("response from terminal unmarshal error", "err", err)
+		return "", "", err
+	}
+	latestVersion = ((respBody.Data.(map[string]interface{}))["latestVersion"]).(string)
+	allowVersion = ((respBody.Data.(map[string]interface{}))["allowVersion"]).(string)
+	return latestVersion, allowVersion, nil
+}

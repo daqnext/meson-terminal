@@ -15,7 +15,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -77,20 +76,20 @@ func requestHandler(ctx *gin.Context) {
 
 	//isRequestCachedFiles
 	filePath := ctx.Request.URL.String()
-	storagePath := global.FileDirPath + "/" + bindName + "/" + filePath
+	storagePath := global.FileDirPath + "/" + bindName + filePath
 	exist := utils.Exists(storagePath)
 	if exist {
-		fileName := path.Base(filePath)
-		fileName = strings.Replace(fileName, "-redirecter456gt", "", 1)
+		//fileName := path.Base(filePath)
+		filePath = strings.Replace(filePath, "-redirecter456gt", "", 1)
 		//set access time
-		go ldb.SetAccessTimeStamp("/"+bindName+"/"+filePath, time.Now().Unix())
+		go ldb.SetAccessTimeStamp(bindName+filePath, time.Now().Unix())
 		transferCacheFileFS(ctx, storagePath)
 		return
 	}
 
 	//if not exist
 	//redirect to server
-	serverUrl := global.ServerDomain + "/api/cdn/" + bindName + "/" + filePath
+	serverUrl := global.ServerDomain + "/api/cdn/" + bindName + filePath
 	ctx.Redirect(302, serverUrl)
 	return
 }

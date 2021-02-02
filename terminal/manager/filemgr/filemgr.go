@@ -268,8 +268,9 @@ func ScanExpirationFiles() {
 	case 0:
 		//get right request
 		logger.Debug("agree to delete files")
+		//delay 5 minutes delete
+		time.Sleep(5 * time.Minute)
 		for _, v := range expirationFils {
-			//file := strings.Split(v, "/")
 			os.Remove(global.FileDirPath + "/" + v)
 			ldb.DB.Delete([]byte(v), nil)
 		}

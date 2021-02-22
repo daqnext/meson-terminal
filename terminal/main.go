@@ -49,7 +49,7 @@ func main() {
 				account.ServerRequestTest = nil
 				global.TerminalIsRunning = true
 			}
-		case <-time.After(30 * time.Second):
+		case <-time.After(45 * time.Second):
 			logger.Fatal("net connect error,please make sure your port is open")
 		}
 	}()

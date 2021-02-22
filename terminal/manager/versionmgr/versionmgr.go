@@ -9,24 +9,24 @@ import (
 	"runtime"
 )
 
-const Version = "0.1.3"
+const Version = "0.1.5"
 
-func GetOSInfo() (arch string, os string) {
+func GetOSInfo() (arch string, osInfo string) {
 	arch = "amd64"
 	switch runtime.GOARCH {
 	case "386":
 		arch = "386"
 	}
 
-	os = "linux"
+	osInfo = "linux"
 	switch runtime.GOOS {
 	case "windows":
-		os = "windows"
+		osInfo = "windows"
 	case "darwin":
-		os = "darwin"
+		osInfo = "darwin"
 	}
 
-	return arch, os
+	return arch, osInfo
 }
 
 func GetTerminalVersionFromServer() (latestVersion string, allowVersion string, err error) {

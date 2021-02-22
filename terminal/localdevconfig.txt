@@ -5,7 +5,7 @@ token = fv4pcLw2Kw09TOoPf2aXXg==
 port = 19091
 
 # space limit (Maximum allowable space for Terminal in GB. Less than the total disk. At least 10GB)
-spacelimit = 10
+spacelimit = 2
 
 #server address e.x. http://127.0.0.1:9090 #include port
 serverdomain= https://coldcdn.com

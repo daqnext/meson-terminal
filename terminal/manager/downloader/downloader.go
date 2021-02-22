@@ -28,7 +28,7 @@ func DownloadFunc(task *downloadtaskmgr.DownloadTask) error {
 		logger.Error("download file url="+task.TargetUrl+"error", "err", err)
 		return err
 	}
-	ldb.SetAccessTimeStamp(task.BindNameHash+"/"+fileName, time.Now().Unix())
+	ldb.SetAccessTimeStamp(task.BindNameHash+"/"+task.FileNameHash, time.Now().Unix())
 	//get file size
 	fileInfo, err := os.Stat(filePath)
 	if err == nil {

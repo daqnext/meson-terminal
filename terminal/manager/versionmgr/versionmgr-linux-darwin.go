@@ -5,16 +5,18 @@ package versionmgr
 import (
 	"archive/tar"
 	"compress/gzip"
+	"errors"
 	"fmt"
-	"github.com/daqnext/meson-common/common/downloadtaskmgr"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"syscall"
 )
@@ -35,11 +37,12 @@ func CheckVersion() {
 	//need upgrade
 	logger.Info("New version detected, start to upgrade... ")
 	//check arch and os
-	arch, os := GetOSInfo()
+	arch, osInfo := GetOSInfo()
 
 	// 'https://meson.network/static/terminal/v0.1.2/meson-darwin-amd64.tar.gz'
-	fileName := "meson" + "-" + os + "-" + arch + ".tar.gz"
+	fileName := "meson" + "-" + osInfo + "-" + arch + ".tar.gz"
 	newVersionDownloadUrl := "https://meson.network/static/terminal/v" + latestVersion + "/" + fileName
+	logger.Debug("new version download url", "url", newVersionDownloadUrl)
 	//download new version
 	err = DownloadNewVersion(fileName, newVersionDownloadUrl, latestVersion)
 	if err != nil {
@@ -54,12 +57,49 @@ func CheckVersion() {
 }
 
 func DownloadNewVersion(fileName string, downloadUrl string, newVersion string) error {
-	//download xxx.tar.gz
-	err := downloadtaskmgr.DownLoadFile(downloadUrl, fileName)
+	//get
+	response, err := http.Get(downloadUrl)
 	if err != nil {
-		logger.Error("download new version file error", "err", err)
+		logger.Error("get file url "+downloadUrl+" error", "err", err)
 		return err
 	}
+	//creat folder and file
+	distDir := path.Dir(fileName)
+	err = os.MkdirAll(distDir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	file, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	//defer file.Close()
+	if response.Body == nil {
+		file.Close()
+		return errors.New("body is null")
+	}
+	defer response.Body.Close()
+	_, err = io.Copy(file, response.Body)
+	if err != nil {
+		os.Remove(fileName)
+		file.Close()
+		return err
+	}
+	fileInfo, err := os.Stat(fileName)
+	if err != nil {
+		os.Remove(fileName)
+		file.Close()
+		return err
+	}
+	size := fileInfo.Size()
+	logger.Debug("donwload file,fileInfo", "size", size)
+
+	if size == 0 {
+		os.Remove(fileName)
+		file.Close()
+		return errors.New("download file size error")
+	}
+	file.Close()
 
 	//unzip tar.gz
 	targetDir := "./" + strings.Replace(fileName, ".tar.gz", "", 1)

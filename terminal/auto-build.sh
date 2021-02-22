@@ -1,7 +1,7 @@
 #!/bin/sh
 # Copyright 2020 Daqnext Foundation Ltd.
 
-VERSION="v0.1.3"
+VERSION="v0.1.5"
 COPY_FILES=("config.txt" "host_key.key" "host_chain.crt")
 
 generate_tar() {

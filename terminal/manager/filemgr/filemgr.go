@@ -227,7 +227,7 @@ func ScanExpirationFiles() {
 
 	//scan expiration time
 	expirationFils := []string{}
-	iter := ldb.DB.NewIterator(nil, nil)
+	iter := ldb.GetDB().NewIterator(nil, nil)
 	nowTime := time.Now().Unix()
 	for iter.Next() {
 		key := iter.Key()
@@ -272,7 +272,7 @@ func ScanExpirationFiles() {
 		time.Sleep(5 * time.Minute)
 		for _, v := range expirationFils {
 			os.Remove(global.FileDirPath + "/" + v)
-			ldb.DB.Delete([]byte(v), nil)
+			ldb.GetDB().Delete([]byte(v), nil)
 		}
 		DeleteEmptyFolder()
 		FullSpace()

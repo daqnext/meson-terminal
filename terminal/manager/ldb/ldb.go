@@ -9,10 +9,17 @@ import (
 	"os"
 )
 
-var DB *leveldb.DB
+var db *leveldb.DB
 
 func init() {
 	LevelDBInit()
+}
+
+func GetDB() *leveldb.DB {
+	if db == nil {
+		LevelDBInit()
+	}
+	return db
 }
 
 func LevelDBInit() {
@@ -27,26 +34,20 @@ func LevelDBInit() {
 	if err != nil {
 		logger.Fatal("open level db error", "err", err)
 	}
-	DB = ldb
+	db = ldb
 }
 
 func SetAccessTimeStamp(filePath string, timeStamp int64) {
 	b := make([]byte, 8)
 	binary.LittleEndian.PutUint64(b, uint64(timeStamp))
-	if DB == nil {
-		LevelDBInit()
-	}
-	err := DB.Put([]byte(filePath), b, nil)
+	err := GetDB().Put([]byte(filePath), b, nil)
 	if err != nil {
 		logger.Error("leveldb put data error", "err", err, "filePath", filePath)
 	}
 }
 
 func GetLastAccessTimeStamp(filePath string) int64 {
-	if DB == nil {
-		LevelDBInit()
-	}
-	data, err := DB.Get([]byte(filePath), nil)
+	data, err := GetDB().Get([]byte(filePath), nil)
 	if err != nil {
 		logger.Debug("leveldb data not find", "err", err)
 		return 0
@@ -57,6 +58,7 @@ func GetLastAccessTimeStamp(filePath string) int64 {
 }
 
 func Close() {
-	DB.Close()
-	DB = nil
+	logger.Info("levelDB close")
+	GetDB().Close()
+	db = nil
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
 	"github.com/gin-gonic/gin"
 	"github.com/shirou/gopsutil/disk"
+	"github.com/syndtr/goleveldb/leveldb"
 	"io/ioutil"
 	"os"
 	"path"
@@ -227,7 +228,15 @@ func ScanExpirationFiles() {
 
 	//scan expiration time
 	expirationFils := []string{}
-	iter := ldb.GetDB().NewIterator(nil, nil)
+
+	ldb.DBLock.Lock()
+	db, err := ldb.OpenDB()
+	if err != nil {
+		logger.Fatal("ScanExpirationFiles open level db error", "err", err)
+		ldb.DBLock.Unlock()
+		return
+	}
+	iter := db.NewIterator(nil, nil)
 	nowTime := time.Now().Unix()
 	for iter.Next() {
 		key := iter.Key()
@@ -241,6 +250,8 @@ func ScanExpirationFiles() {
 			expirationFils = append(expirationFils, file)
 		}
 	}
+	db.Close()
+	ldb.DBLock.Unlock()
 
 	if len(expirationFils) == 0 {
 		return
@@ -270,9 +281,26 @@ func ScanExpirationFiles() {
 		logger.Debug("agree to delete files")
 		//delay 5 minutes delete
 		time.Sleep(5 * time.Minute)
+
+		batch := new(leveldb.Batch)
 		for _, v := range expirationFils {
 			os.Remove(global.FileDirPath + "/" + v)
-			ldb.GetDB().Delete([]byte(v), nil)
+			//db.Delete([]byte(v), nil)
+			batch.Delete([]byte(v))
+		}
+		ldb.DBLock.Lock()
+		db, err := ldb.OpenDB()
+		if err != nil {
+			logger.Error("ScanExpirationFiles delete open level db error", "err", err)
+			ldb.DBLock.Unlock()
+			return
+		}
+		err = db.Write(batch, nil)
+		db.Close()
+		ldb.DBLock.Unlock()
+		if err != nil {
+			logger.Error("ScanExpirationFiles leveldb batch delete error", "err", err)
+			return
 		}
 		DeleteEmptyFolder()
 		FullSpace()
@@ -283,23 +311,23 @@ func ScanExpirationFiles() {
 
 }
 
-func AccessTime() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		requestPath := ctx.Request.URL.String()
-		filePath := strings.Replace(requestPath, "/api/static/files/", "", 1)
-		//set access time
-		go ldb.SetAccessTimeStamp(filePath, time.Now().Unix())
-	}
-}
-
-func IsFileExist(filePath string) bool {
-	time := ldb.GetLastAccessTimeStamp(filePath)
-	if time == 0 {
-		return false
-	}
-
-	return true
-}
+//func AccessTime() gin.HandlerFunc {
+//	return func(ctx *gin.Context) {
+//		requestPath := ctx.Request.URL.String()
+//		filePath := strings.Replace(requestPath, "/api/static/files/", "", 1)
+//		//set access time
+//		go ldb.SetAccessTimeStamp(filePath, time.Now().Unix())
+//	}
+//}
+//
+//func IsFileExist(filePath string) bool {
+//	time := ldb.GetLastAccessTimeStamp(filePath)
+//	if time == 0 {
+//		return false
+//	}
+//
+//	return true
+//}
 
 func PreHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {

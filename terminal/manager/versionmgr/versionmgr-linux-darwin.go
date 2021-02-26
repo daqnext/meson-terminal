@@ -10,7 +10,6 @@ import (
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
-	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -193,7 +192,6 @@ func RestartTerminal() {
 	if global.TerminalIsRunning {
 		command := fmt.Sprintf("kill -1 %d", syscall.Getpid())
 		cmd := exec.Command("/bin/bash", "-c", command)
-		ldb.Close()
 		cmd.Run()
 	} else {
 		logger.Fatal("New version download finish.Please restart")

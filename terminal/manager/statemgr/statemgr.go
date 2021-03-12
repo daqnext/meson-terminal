@@ -100,7 +100,7 @@ func SendStateToServer() {
 	case 0:
 		//logger.Debug("send State success")
 	case 101: //auth error
-		logger.Fatal("auth error,please restart terminal with correct username and password")
+		logger.Error("auth error,please restart terminal with correct username and password")
 	case 106: //low version
 		logger.Fatal("Your version need upgrade. Please download new version from meson.network ")
 	default:

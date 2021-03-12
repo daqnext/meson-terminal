@@ -26,11 +26,9 @@ import (
 	_ "github.com/daqnext/meson-terminal/terminal/routerpath/api/v1"
 )
 
-func init() {
-	terminallogger.InitLogger()
-}
-
 func main() {
+	terminallogger.InitLogger()
+
 	//version check
 	versionmgr.CheckVersion()
 

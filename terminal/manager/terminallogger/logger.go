@@ -6,12 +6,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"io"
 	"os"
-	"testing"
 )
 
 func InitLogger() {
-	testing.Init()
-
 	log := logrus.New()
 
 	fileWriter := logger.LogFileWriter{}

@@ -30,14 +30,14 @@ func TerminalLogin(url string, token string) {
 		bytes.NewBuffer(bytesData),
 	)
 	if err != nil {
-		logger.Fatal("Login failed Fatal error ", err.Error())
+		logger.Fatal("Login failed Fatal error ", "err", err.Error())
 	}
 
 	defer res.Body.Close()
 
 	content, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		logger.Fatal("Login failed Fatal error ", err.Error())
+		logger.Fatal("Login failed Fatal error ", "err", err.Error())
 	}
 	//logger.Debug("response form server", "response string", string(content))
 	var respBody resp.RespBody

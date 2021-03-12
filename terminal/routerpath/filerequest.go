@@ -90,6 +90,8 @@ func requestHandler(ctx *gin.Context) {
 	//if not exist
 	//redirect to server
 	serverUrl := global.ServerDomain + "/api/cdn/" + bindName + filePath
+	//todo: modify cdn user path
+	//serverUrl := fmt.Sprintf("https://%s.coldcdn.com%s",bindName,filePath)
 	ctx.Redirect(302, serverUrl)
 	return
 }

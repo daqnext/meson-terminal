@@ -1,5 +1,5 @@
 #token register and login in https://meson.network
-token = fv4pcLw2Kw09TOoPf2aXXg==
+token = XhTu7Cw/wfUzUL4shA1BBQ==
 
 # server port
 port = 19091

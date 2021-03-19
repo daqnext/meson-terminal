@@ -17,11 +17,12 @@ func init() {
 
 	// /api/v1/file/save
 	common.GetMyRouter().POST("/save", saveNewFileHandler)
+
 	// /api/v1/file/delete
-	common.GetMyRouter().POST("/delete", deleteFileHandler)
+	//common.GetMyRouter().POST("/delete", deleteFileHandler)
 
 	// /api/v1/file/deletefolder
-	common.GetMyRouter().POST("/deletefolder", deleteFolderHandler)
+	//common.GetMyRouter().POST("/deletefolder", deleteFolderHandler)
 
 	// /api/v1/file/pause
 	common.GetMyRouter().GET("/pause/:time", pauseHandler)
@@ -54,29 +55,6 @@ func saveNewFileHandler(ctx *gin.Context) {
 		resp.ErrorResp(ctx, resp.ErrAddDownloadTaskFailed)
 		return
 	}
-	resp.SuccessResp(ctx, nil)
-}
-
-func deleteFileHandler(ctx *gin.Context) {
-	ctx.JSON(200, gin.H{
-		"status": 0,
-		"msg":    "deleteFileHandler",
-	})
-}
-
-func deleteFolderHandler(ctx *gin.Context) {
-	var msg commonmsg.DeleteFolderCmdMsg
-	if err := ctx.ShouldBindJSON(&msg); err != nil {
-		resp.ErrorResp(ctx, resp.ErrMalParams)
-		return
-	}
-
-	err := filemgr.DeleteFolder(msg.FolderName)
-	if err != nil {
-		resp.ErrorResp(ctx, resp.ErrInternalError)
-		return
-	}
-
 	resp.SuccessResp(ctx, nil)
 }
 

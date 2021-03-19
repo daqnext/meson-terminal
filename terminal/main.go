@@ -92,7 +92,7 @@ func main() {
 	crtFileName := "./host_chain.crt"
 	keyFileName := "./host_key.key"
 	httpsAddr := fmt.Sprintf(":%s", config.UsingPort)
-	httpsGinServer := routerpath.FileRequestServer()
+	httpsGinServer := routerpath.RequestServer()
 	// https server
 	err := httpserver.StartHttpsServer(httpsAddr, crtFileName, keyFileName, httpsGinServer)
 	if err != nil {

@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-func FileRequestServer() *gin.Engine {
+func RequestServer() *gin.Engine {
 	cdnGin := gin.Default()
 
 	corsConfig := cors.DefaultConfig()

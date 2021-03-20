@@ -40,9 +40,71 @@ func requestHandler(ctx *gin.Context) {
 	hostName := strings.Split(ctx.Request.Host, ".")[0]
 	hostInfo := strings.Split(hostName, "-")
 	bindName := hostInfo[0]
-	fileName := ctx.Request.URL.String()
+	path := ctx.Request.URL.String()
 
-	isFileRequest := strings.Contains(fileName, "/api/static/files/")
+	method := ctx.Request.Method
+	// not GET or HEAD
+	if method != "GET" && method != "HEAD" {
+		serverUrl := global.ServerDomain + "/api/cdn/" + bindName + path
+		ctx.Redirect(302, serverUrl)
+		return
+	}
+
+	//if request is a query
+	queryPos := strings.Index(path, "?")
+	if queryPos != -1 {
+		serverUrl := global.ServerDomain + "/api/cdn/" + bindName + path
+		ctx.Redirect(302, serverUrl)
+		return
+	}
+
+	//browser file request
+	if bindName!="0" {
+		//isRequestCachedFiles
+		filePath := ctx.Request.URL.String()
+		storagePath := global.FileDirPath + "/" + bindName + filePath
+		exist := utils.Exists(storagePath)
+		if exist {
+			//fileName := path.Base(filePath)
+			filePath = strings.Replace(filePath, "-redirecter456gt", "", 1)
+			//set access time
+			go ldb.SetAccessTimeStamp(bindName+filePath, time.Now().Unix())
+			transferCacheFileFS(ctx, storagePath)
+			return
+		}
+
+		//if not exist
+		//redirect to server
+		serverUrl := global.ServerDomain + "/api/cdn/" + bindName + filePath
+		//todo: modify cdn user path
+		//serverUrl := fmt.Sprintf("https://%s.coldcdn.com%s",bindName,filePath)
+		ctx.Redirect(302, serverUrl)
+		return
+	}
+
+	if bindName=="0" && strings.Contains(path, "/api/static/files/") {
+
+	}
+
+	if bindName =="0" &&
+
+
+
+	//if api request form server
+
+
+	//if speedTester request
+
+
+	//if speedTester request file
+
+
+
+
+
+
+
+	isFileRequest := strings.Contains(path, "/api/static/files/")
 
 	if bindName == "0" && !isFileRequest {
 		targetUrl := "http://127.0.0.1:" + global.ApiPort
@@ -50,21 +112,8 @@ func requestHandler(ctx *gin.Context) {
 		return
 	}
 
-	method := ctx.Request.Method
-	// not GET or HEAD
-	if method != "GET" && method != "HEAD" {
-		serverUrl := global.ServerDomain + "/api/cdn/" + bindName + fileName
-		ctx.Redirect(302, serverUrl)
-		return
-	}
+	fileName:=path
 
-	//if request is a query
-	queryPos := strings.Index(fileName, "?")
-	if queryPos != -1 {
-		serverUrl := global.ServerDomain + "/api/cdn/" + bindName + fileName
-		ctx.Redirect(302, serverUrl)
-		return
-	}
 
 	//isFileRequest
 	if bindName == "0" && isFileRequest {
@@ -74,26 +123,7 @@ func requestHandler(ctx *gin.Context) {
 		return
 	}
 
-	//isRequestCachedFiles
-	filePath := ctx.Request.URL.String()
-	storagePath := global.FileDirPath + "/" + bindName + filePath
-	exist := utils.Exists(storagePath)
-	if exist {
-		//fileName := path.Base(filePath)
-		filePath = strings.Replace(filePath, "-redirecter456gt", "", 1)
-		//set access time
-		go ldb.SetAccessTimeStamp(bindName+filePath, time.Now().Unix())
-		transferCacheFileFS(ctx, storagePath)
-		return
-	}
 
-	//if not exist
-	//redirect to server
-	serverUrl := global.ServerDomain + "/api/cdn/" + bindName + filePath
-	//todo: modify cdn user path
-	//serverUrl := fmt.Sprintf("https://%s.coldcdn.com%s",bindName,filePath)
-	ctx.Redirect(302, serverUrl)
-	return
 }
 
 func transferCacheFileFS(ctx *gin.Context, filePath string) {

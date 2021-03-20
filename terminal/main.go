@@ -5,7 +5,6 @@ import (
 	"github.com/daqnext/meson-common/common"
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
-	"github.com/daqnext/meson-terminal/terminal/manager/account"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
@@ -36,21 +35,21 @@ func main() {
 	filemgr.Init()
 
 	//login
-	account.TerminalLogin(global.TerminalLoginUrl, config.UsingToken)
+	//account.TerminalLogin(global.TerminalLoginUrl, config.UsingToken)
 
 	//waiting for confirm msg
-	go func() {
-		select {
-		case flag := <-account.ServerRequestTest:
-			if flag == true {
-				logger.Info("net connect confirmed")
-				account.ServerRequestTest = nil
-				global.TerminalIsRunning = true
-			}
-		case <-time.After(45 * time.Second):
-			logger.Fatal("net connect error,please make sure your port is open")
-		}
-	}()
+	//go func() {
+	//	select {
+	//	case flag := <-account.ServerRequestTest:
+	//		if flag == true {
+	//			logger.Info("net connect confirmed")
+	//			account.ServerRequestTest = nil
+	//			global.TerminalIsRunning = true
+	//		}
+	//	case <-time.After(45 * time.Second):
+	//		logger.Fatal("net connect error,please make sure your port is open")
+	//	}
+	//}()
 
 	//set gin mode
 	if config.GetString("ginMode") == "debug" {

@@ -1,26 +1,55 @@
-package v1
+package routerpath
 
 import (
-	"github.com/daqnext/meson-common/common"
 	"github.com/daqnext/meson-common/common/commonmsg"
 	"github.com/daqnext/meson-common/common/downloadtaskmgr"
+	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/resp"
+	"github.com/daqnext/meson-common/common/utils"
+	"github.com/daqnext/meson-terminal/terminal/manager/account"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
+	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
 	"github.com/gin-gonic/gin"
 	"strconv"
+	"strings"
 	"time"
 )
 
-func init() {
-	common.AutoConfigRouter()
+func testHandler(ctx *gin.Context) {
+	logger.Debug("Get test Request form Server")
+	if account.ServerRequestTest != nil {
+		account.ServerRequestTest <- true
+	}
+	ctx.JSON(200, gin.H{
+		"status": 0,
+		"time":   time.Now().Format("2006-01-02 15:04:05.000"),
+	})
+}
 
-	// /api/v1/file/save
-	common.GetMyRouter().POST("/save", saveNewFileHandler)
+func healthHandler(ctx *gin.Context) {
+	ctx.JSON(200, gin.H{
+		"status": 0,
+	})
+}
 
-	// /api/v1/file/pause
-	common.GetMyRouter().GET("/pause/:time", pauseHandler)
+func requestCachedFilesHandler(ctx *gin.Context, bindName string, filePath string) {
+	storagePath := global.FileDirPath + "/" + bindName + filePath
+	exist := utils.Exists(storagePath)
+	if exist {
+		//fileName := path.Base(filePath)
+		filePath = strings.Replace(filePath, "-redirecter456gt", "", 1)
+		//set access time
+		go ldb.SetAccessTimeStamp(bindName+filePath, time.Now().Unix())
+		transferCacheFileFS(ctx, storagePath)
+		return
+	}
 
+	//if not exist
+	//redirect to server
+	serverUrl := global.ServerDomain + "/api/cdn/" + bindName + filePath
+	ctx.Redirect(302, serverUrl)
+	return
 }
 
 func saveNewFileHandler(ctx *gin.Context) {
@@ -60,9 +89,4 @@ func pauseHandler(ctx *gin.Context) {
 	}
 	global.PauseMoment = time.Now().Unix() + pauseTime
 	resp.SuccessResp(ctx, nil)
-	//global.PauseTransfer = true
-	//go func() {
-	//	time.Sleep(time.Second * time.Duration(pauseTime))
-	//	global.PauseTransfer = false
-	//}()
 }

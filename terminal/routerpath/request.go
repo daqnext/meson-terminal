@@ -59,113 +59,28 @@ func requestHandler(ctx *gin.Context) {
 	}
 
 	//browser file request
+	// https://bindName-tagxxxxxx.shoppynext.com:19091/filepath/filename
 	if bindName!="0" {
 		//isRequestCachedFiles
-		filePath := ctx.Request.URL.String()
-		storagePath := global.FileDirPath + "/" + bindName + filePath
-		exist := utils.Exists(storagePath)
-		if exist {
-			//fileName := path.Base(filePath)
-			filePath = strings.Replace(filePath, "-redirecter456gt", "", 1)
-			//set access time
-			go ldb.SetAccessTimeStamp(bindName+filePath, time.Now().Unix())
-			transferCacheFileFS(ctx, storagePath)
-			return
-		}
-
-		//if not exist
-		//redirect to server
-		serverUrl := global.ServerDomain + "/api/cdn/" + bindName + filePath
-		//todo: modify cdn user path
-		//serverUrl := fmt.Sprintf("https://%s.coldcdn.com%s",bindName,filePath)
-		ctx.Redirect(302, serverUrl)
+		requestCachedFilesHandler(ctx,bindName,path)
 		return
 	}
-
-	if bindName=="0" && strings.Contains(path, "/api/static/files/") {
-
-	}
-
-	if bindName =="0" &&
-
-
-
-	//if api request form server
-
-
-	//if speedTester request
-
 
 	//if speedTester request file
-
-
-
-
-
-
-
-	isFileRequest := strings.Contains(path, "/api/static/files/")
-
-	if bindName == "0" && !isFileRequest {
-		targetUrl := "http://127.0.0.1:" + global.ApiPort
-		Forward(targetUrl, ctx)
-		return
-	}
-
-	fileName:=path
-
-
-	//isFileRequest
-	if bindName == "0" && isFileRequest {
+	// https://0-tagxxxxxx.shoppynext.com:19091/api/static/files/standardfile/100.bin
+	if strings.Contains(path, "/api/static/files/") {
 		path := ctx.Request.URL.Path
 		requestFile := strings.Replace(path, "/api/static/", "", 1)
 		ctx.File("./" + requestFile)
 		return
 	}
 
+	//apiRequest form server
+	// POST https://0-tagxxxxxx.shoppynext.com:19091/api/v1/file/save
+	// GET https://0-tagxxxxxx.shoppynext.com:19091/api/v1/file/pause/xxx
+	// GET https://0-tagxxxxxx.shoppynext.com:19091/api/testapi/test
+	// GET https://0-tagxxxxxx.shoppynext.com:19091/api/testapi/health
+	if bindName =="0" &&
 
-}
 
-func transferCacheFileFS(ctx *gin.Context, filePath string) {
-	ServeFile(ctx.Writer, ctx.Request, filePath)
-}
-
-func transferCacheFile(ctx *gin.Context, filePath string) {
-	f, err := os.Open(filePath)
-	if err != nil {
-		ctx.Status(404)
-		return
-	}
-	fstate, _ := f.Stat()
-	size := fstate.Size()
-	buf := bufio.NewReader(f)
-	type_b, _ := buf.Peek(512)
-	ctx.Writer.Header().Set("Content-type", http.DetectContentType(type_b)) //set type
-	ctx.Writer.Header().Set("Content-Length", strconv.FormatInt(size, 10))  //set size
-
-	buf_b := make([]byte, 1024*1024)
-	for {
-		for global.PauseTransfer == true {
-			fmt.Println("pausing") //only for dev
-			time.Sleep(time.Millisecond * 100)
-		}
-		fmt.Println("transferfile") //only for dev
-		n, err := buf.Read(buf_b)
-		ctx.Writer.Write(buf_b[:n])
-		//time.Sleep(time.Millisecond*100) //only for dev
-		if err == io.EOF || n == 0 {
-			break
-		}
-	}
-}
-
-func Forward(targetUrl string, ctx *gin.Context) {
-	remote, err := url.Parse(targetUrl)
-	if err != nil {
-		logger.Error("err", "err", err)
-	}
-	logger.Debug("remote", "remote", remote)
-
-	proxy := httputil.NewSingleHostReverseProxy(remote)
-	proxy.ServeHTTP(ctx.Writer, ctx.Request)
 }

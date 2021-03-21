@@ -23,4 +23,5 @@ var FilePort = ""
 var ApiPort = ""
 
 var PauseTransfer = false
+var PauseMoment = int64(0)
 var TerminalIsRunning = false

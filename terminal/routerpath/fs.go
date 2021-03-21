@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
+	"github.com/gin-gonic/gin"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -304,21 +305,6 @@ func serveContent(w http.ResponseWriter, r *http.Request, name string, modtime t
 
 	if r.Method != "HEAD" {
 		CopyN(w, sendContent, sendSize)
-		//buf := bufio.NewReader(sendContent)
-		//buf_b := make([]byte, 512*1024)
-		//for {
-		//	for global.PauseTransfer == true {
-		//		//fmt.Println("pausing") //only for dev
-		//		time.Sleep(time.Millisecond * 100)
-		//	}
-		//	//fmt.Println("transferfile") //only for dev
-		//	n, err := buf.Read(buf_b)
-		//	w.Write(buf_b[:n])
-		//	//time.Sleep(time.Millisecond*100) //only for dev
-		//	if err == io.EOF || n == 0 {
-		//		break
-		//	}
-		//}
 	}
 }
 
@@ -369,8 +355,8 @@ func copyBuffer(dst io.Writer, src io.Reader, buf []byte) (written int64, err er
 		buf = make([]byte, size)
 	}
 	for {
-		for global.PauseTransfer == true {
-			fmt.Println("pausing") //only for dev
+		for time.Now().Unix() < global.PauseMoment {
+			//fmt.Println("pausing") //only for dev
 			time.Sleep(time.Millisecond * 100)
 		}
 		nr, er := src.Read(buf)
@@ -940,4 +926,8 @@ func sumRangesSize(ranges []httpRange) (size int64) {
 		size += ra.length
 	}
 	return
+}
+
+func transferCacheFileFS(ctx *gin.Context, filePath string) {
+	ServeFile(ctx.Writer, ctx.Request, filePath)
 }

@@ -1,23 +1,10 @@
 package routerpath
 
 import (
-	"bufio"
-	"fmt"
-	"github.com/daqnext/meson-common/common/logger"
-	"github.com/daqnext/meson-common/common/utils"
-	"github.com/daqnext/meson-terminal/terminal/manager/global"
-	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
-	"io"
-	"net/http"
-	"net/http/httputil"
-	"net/url"
-	"os"
-	"strconv"
 	"strings"
-	"time"
 )
 
 func RequestServer() *gin.Engine {
@@ -36,6 +23,13 @@ func RequestServer() *gin.Engine {
 	return cdnGin
 }
 
+var HandlerMap = map[string]func(ctx *gin.Context){
+	"POST /api/v1/file/save":  saveNewFileHandler,
+	"POST /api/v1/file/pause": pauseHandler,
+	"GET /api/testapi/test":   testHandler,
+	"GET /api/testapi/health": healthHandler,
+}
+
 func requestHandler(ctx *gin.Context) {
 	hostName := strings.Split(ctx.Request.Host, ".")[0]
 	hostInfo := strings.Split(hostName, "-")
@@ -44,25 +38,25 @@ func requestHandler(ctx *gin.Context) {
 
 	method := ctx.Request.Method
 	// not GET or HEAD
-	if method != "GET" && method != "HEAD" {
-		serverUrl := global.ServerDomain + "/api/cdn/" + bindName + path
-		ctx.Redirect(302, serverUrl)
-		return
-	}
+	//if bindName!="0" && (method != "GET" && method != "HEAD") {
+	//	serverUrl := global.ServerDomain + "/api/cdn/" + bindName + path
+	//	ctx.Redirect(302, serverUrl)
+	//	return
+	//}
 
 	//if request is a query
-	queryPos := strings.Index(path, "?")
-	if queryPos != -1 {
-		serverUrl := global.ServerDomain + "/api/cdn/" + bindName + path
-		ctx.Redirect(302, serverUrl)
-		return
-	}
+	//queryPos := strings.Index(path, "?")
+	//if bindName!="0" && queryPos != -1 {
+	//	serverUrl := global.ServerDomain + "/api/cdn/" + bindName + path
+	//	ctx.Redirect(302, serverUrl)
+	//	return
+	//}
 
 	//browser file request
 	// https://bindName-tagxxxxxx.shoppynext.com:19091/filepath/filename
-	if bindName!="0" {
+	if bindName != "0" {
 		//isRequestCachedFiles
-		requestCachedFilesHandler(ctx,bindName,path)
+		requestCachedFilesHandler(ctx, bindName, path)
 		return
 	}
 
@@ -76,11 +70,16 @@ func requestHandler(ctx *gin.Context) {
 	}
 
 	//apiRequest form server
-	// POST https://0-tagxxxxxx.shoppynext.com:19091/api/v1/file/save
-	// GET https://0-tagxxxxxx.shoppynext.com:19091/api/v1/file/pause/xxx
+	// POST https://0-tagxxxxxx.shoppynext.com:19091/api/v1/file/save  timestamp+sign
+	// POST https://0-tagxxxxxx.shoppynext.com:19091/api/v1/file/pause   timestamp+sign
 	// GET https://0-tagxxxxxx.shoppynext.com:19091/api/testapi/test
 	// GET https://0-tagxxxxxx.shoppynext.com:19091/api/testapi/health
-	if bindName =="0" &&
+	hitKey := method + " " + path
+	handler, exist := HandlerMap[hitKey]
+	if exist {
+		handler(ctx)
+		return
+	}
 
-
+	ctx.Status(404)
 }

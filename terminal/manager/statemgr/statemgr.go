@@ -102,7 +102,8 @@ func SendStateToServer() {
 	case 101: //auth error
 		logger.Error("auth error,please restart terminal with correct username and password")
 	case 106: //low version
-		logger.Fatal("Your version need upgrade. Please download new version from meson.network ")
+		logger.Error("Your version need upgrade. Please download new version from meson.network ")
+		versionmgr.CheckVersion()
 	default:
 		logger.Error("server error")
 	}

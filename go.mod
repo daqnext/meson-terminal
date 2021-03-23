@@ -16,4 +16,4 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca
 )
 
-//replace github.com/daqnext/meson-common => /Users/zhangzhenbo/workspace/go/project/meson-common
+replace github.com/daqnext/meson-common => /Users/zhangzhenbo/workspace/go/project/meson-common

@@ -3,13 +3,16 @@ package main
 import (
 	"fmt"
 	"github.com/daqnext/meson-common/common"
+	"github.com/daqnext/meson-common/common/downloadtaskmgr"
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-terminal/terminal/manager/account"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/httpserver"
+	"github.com/daqnext/meson-terminal/terminal/manager/security"
 	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
 	"github.com/daqnext/meson-terminal/terminal/manager/versionmgr"
@@ -22,34 +25,45 @@ import (
 
 	//api router
 	_ "github.com/daqnext/meson-terminal/terminal/routerpath/api"
-	_ "github.com/daqnext/meson-terminal/terminal/routerpath/api/v1"
 )
 
 func main() {
 	terminallogger.InitLogger()
 
+	//domain check
+
 	//version check
 	versionmgr.CheckVersion()
+
+	//download publickey
+	url := "https://assets.meson.network:10443/static/terminal/publickey/meson_PublicKey.pem"
+	err := downloadtaskmgr.DownLoadFile(url, security.KeyPath)
+	if err != nil {
+		logger.Error("download publicKey url="+url+"error", "err", err)
+	}
 
 	config.CheckConfig()
 	filemgr.Init()
 
+	//publicKey
+	security.InitPublicKey(security.KeyPath)
+
 	//login
-	//account.TerminalLogin(global.TerminalLoginUrl, config.UsingToken)
+	account.TerminalLogin(global.TerminalLoginUrl, config.UsingToken)
 
 	//waiting for confirm msg
-	//go func() {
-	//	select {
-	//	case flag := <-account.ServerRequestTest:
-	//		if flag == true {
-	//			logger.Info("net connect confirmed")
-	//			account.ServerRequestTest = nil
-	//			global.TerminalIsRunning = true
-	//		}
-	//	case <-time.After(45 * time.Second):
-	//		logger.Fatal("net connect error,please make sure your port is open")
-	//	}
-	//}()
+	go func() {
+		select {
+		case flag := <-account.ServerRequestTest:
+			if flag == true {
+				logger.Info("net connect confirmed")
+				account.ServerRequestTest = nil
+				global.TerminalIsRunning = true
+			}
+		case <-time.After(45 * time.Second):
+			logger.Fatal("net connect error,please make sure your port is open")
+		}
+	}()
 
 	//set gin mode
 	if config.GetString("ginMode") == "debug" {
@@ -93,7 +107,7 @@ func main() {
 	httpsAddr := fmt.Sprintf(":%s", config.UsingPort)
 	httpsGinServer := routerpath.RequestServer()
 	// https server
-	err := httpserver.StartHttpsServer(httpsAddr, crtFileName, keyFileName, httpsGinServer)
+	err = httpserver.StartHttpsServer(httpsAddr, crtFileName, keyFileName, httpsGinServer)
 	if err != nil {
 		logger.Error("https server start error", "err", err)
 	}

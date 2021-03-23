@@ -43,7 +43,7 @@ func TerminalLogin(url string, token string) {
 	var respBody resp.RespBody
 	if err := json.Unmarshal(content, &respBody); err != nil {
 		logger.Error("response from terminal unmarshal error", "err", err)
-		logger.Fatal("response from terminal err")
+		logger.Fatal("response from terminal err", "err", err)
 		return
 	}
 

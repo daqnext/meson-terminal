@@ -29,15 +29,9 @@ func LevelDBInit() {
 	if !utils.Exists(global.LDBPath) {
 		err := os.Mkdir(global.LDBPath, 0700)
 		if err != nil {
-			logger.Fatal("tempfile dir create failed, please create dir " + global.FileDirPath + " by manual")
+			logger.Fatal("file dir create failed, please create dir " + global.FileDirPath + " by manual")
 		}
 	}
-
-	//ldb, err := leveldb.OpenFile(global.LDBFile, nil)
-	//if err != nil {
-	//	logger.Fatal("open level db error", "err", err)
-	//}
-	//db = ldb
 }
 
 func OpenDB() (*leveldb.DB, error) {
@@ -54,25 +48,14 @@ func SetAccessTimeStamp(filePath string, timeStamp int64) {
 	DBLock.Lock()
 	defer DBLock.Unlock()
 	db, err := OpenDB()
-	defer db.Close()
 	if err != nil {
 		logger.Error("SetAccessTimeStamp open level db error", "err", err)
 		return
 	}
+	defer db.Close()
 
 	err = db.Put([]byte(filePath), b, nil)
 	if err != nil {
 		logger.Error("leveldb put data error", "err", err, "filePath", filePath)
 	}
 }
-
-//func GetLastAccessTimeStamp(filePath string) int64 {
-//	data, err := GetDB().Get([]byte(filePath), nil)
-//	if err != nil {
-//		logger.Debug("leveldb data not find", "err", err)
-//		return 0
-//	} else {
-//		i := int64(binary.LittleEndian.Uint64(data))
-//		return i
-//	}
-//}

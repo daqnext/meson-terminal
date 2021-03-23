@@ -28,38 +28,3 @@ func InitLogger() {
 
 	logger.BaseLogger = log
 }
-
-//func Debug(msg string, params ...interface{}) {
-//	if terminallogger == nil {
-//		return
-//	}
-//	terminallogger.WithFields(baselogger.SliceToFields(params)).Debug(msg)
-//}
-//
-//func Info(msg string, params ...interface{}) {
-//	if terminallogger == nil {
-//		return
-//	}
-//	terminallogger.WithFields(baselogger.SliceToFields(params)).Info(msg)
-//}
-//
-//func Warn(msg string, params ...interface{}) {
-//	if terminallogger == nil {
-//		return
-//	}
-//	terminallogger.WithFields(baselogger.SliceToFields(params)).Warn(msg)
-//}
-//
-//func Error(msg string, params ...interface{}) {
-//	if terminallogger == nil {
-//		return
-//	}
-//	terminallogger.WithFields(baselogger.SliceToFields(params)).Error(msg)
-//}
-//
-//func Fatal(msg string, params ...interface{}) {
-//	if terminallogger == nil {
-//		return
-//	}
-//	terminallogger.WithFields(baselogger.SliceToFields(params)).Fatal(msg)
-//}

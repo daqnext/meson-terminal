@@ -13,12 +13,10 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
-	"github.com/gin-gonic/gin"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/syndtr/goleveldb/leveldb"
 	"io/ioutil"
 	"os"
-	"path"
 	"strings"
 	"sync"
 	"time"
@@ -201,6 +199,7 @@ func SyncCdnDirSize() {
 
 func ScanExpirationFiles() {
 	//request expiration time from server
+	logger.Info("Start ScanExpirationFiles")
 	header := map[string]string{
 		"Content-Type":  "application/json",
 		"Authorization": "Bearer " + accountmgr.Token,
@@ -232,7 +231,7 @@ func ScanExpirationFiles() {
 	ldb.DBLock.Lock()
 	db, err := ldb.OpenDB()
 	if err != nil {
-		logger.Fatal("ScanExpirationFiles open level db error", "err", err)
+		logger.Error("ScanExpirationFiles open level db error", "err", err)
 		ldb.DBLock.Unlock()
 		return
 	}
@@ -305,62 +304,14 @@ func ScanExpirationFiles() {
 		DeleteEmptyFolder()
 		FullSpace()
 	default:
-		logger.Error("Request FileExpirationTime response ")
+		logger.Error("Request FileExpirationTime response", "response", respBody2)
 		return
 	}
 
 }
 
-//func AccessTime() gin.HandlerFunc {
-//	return func(ctx *gin.Context) {
-//		requestPath := ctx.Request.URL.String()
-//		filePath := strings.Replace(requestPath, "/api/static/files/", "", 1)
-//		//set access time
-//		go ldb.SetAccessTimeStamp(filePath, time.Now().Unix())
-//	}
-//}
-//
-//func IsFileExist(filePath string) bool {
-//	time := ldb.GetLastAccessTimeStamp(filePath)
-//	if time == 0 {
-//		return false
-//	}
-//
-//	return true
-//}
-
-func PreHandler() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		//hostName:=strings.Split(ctx.Request.Host,".")[0]
-		//hostInfo:=strings.Split(hostName,"-")
-		//bindName:=hostInfo[0]
-
-		requestPath := ctx.Request.URL.String()
-		filePath := strings.Replace(requestPath, "/api/static/files/", "", 1)
-		exist := utils.Exists(global.FileDirPath + "/" + filePath)
-		if exist {
-			fileName := path.Base(filePath)
-			fileName = strings.Replace(fileName, "-redirecter456gt", "", 1)
-			ctx.Writer.Header().Add("Content-Disposition", "attachment; filename="+fileName)
-			//set access time
-			go ldb.SetAccessTimeStamp(filePath, time.Now().Unix())
-			return
-		}
-
-		//if not exist
-		//redirect to server
-		serverUrl := global.ServerDomain + "/api/cdn/" + filePath
-		ctx.Redirect(302, serverUrl)
-		ctx.Abort()
-	}
-}
-
 func DeleteEmptyFolder() {
 	utils.DeleteEmptyFolders(global.FileDirPath)
-}
-
-func DeleteFolder(folderPath string) error {
-	return os.RemoveAll(global.FileDirPath + "/" + folderPath)
 }
 
 func GenDiskSpace(fileSize int64) {

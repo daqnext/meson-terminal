@@ -40,7 +40,7 @@ func CheckVersion() {
 
 	// 'https://meson.network/static/terminal/v0.1.2/meson-darwin-amd64.tar.gz'
 	fileName := "meson" + "-" + osInfo + "-" + arch + ".tar.gz"
-	newVersionDownloadUrl := "https://meson.network/static/terminal/v" + latestVersion + "/" + fileName
+	newVersionDownloadUrl := "https://assets.meson.network:10443/static/terminal/v" + latestVersion + "/" + fileName
 	logger.Debug("new version download url", "url", newVersionDownloadUrl)
 	//download new version
 	err = DownloadNewVersion(fileName, newVersionDownloadUrl, latestVersion)
@@ -154,17 +154,21 @@ func DownloadNewVersion(fileName string, downloadUrl string, newVersion string) 
 	logger.Debug("un tar.gz ok")
 
 	//cover old version file
-	files := []string{"meson", "host_chain.crt", "host_key.key"}
+	files, _ := ioutil.ReadDir(targetDir)
 	for _, v := range files {
-		err := coverOldFile(targetDir, v)
+		fileName := v.Name()
+		fmt.Println(v.Name())
+		if fileName == "config.txt" {
+			continue
+		}
+		err := coverOldFile(targetDir, fileName)
 		if err != nil {
 			logger.Error("new version file error-cover file", "err", err)
-			return err
+			continue
 		}
 	}
 
 	os.Remove("./v" + Version)
-	os.Create("./v" + newVersion)
 
 	os.RemoveAll(targetDir)
 	os.Remove(fileName)

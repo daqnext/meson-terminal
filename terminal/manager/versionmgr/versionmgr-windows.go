@@ -29,7 +29,7 @@ func CheckVersion() {
 	}
 
 	//need upgrade
-	logger.Fatal("This version is deprecated, please download new version on meson.network.")
+	logger.Warn("This version is deprecated, please download new version on meson.network.")
 }
 
 //func DownloadNewVersion(fileName string,downloadUrl string,newVersion string) {

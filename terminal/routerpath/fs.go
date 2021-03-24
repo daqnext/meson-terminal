@@ -1,10 +1,10 @@
 package routerpath
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
+	"github.com/gin-gonic/gin"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -304,23 +304,84 @@ func serveContent(w http.ResponseWriter, r *http.Request, name string, modtime t
 	w.WriteHeader(code)
 
 	if r.Method != "HEAD" {
-		//io.CopyN(w, sendContent, sendSize)
-		buf := bufio.NewReader(sendContent)
-		buf_b := make([]byte, 512*1024)
-		for {
-			for global.PauseTransfer == true {
-				//fmt.Println("pausing") //only for dev
-				time.Sleep(time.Millisecond * 100)
+		CopyN(w, sendContent, sendSize)
+	}
+}
+
+// CopyN copies n bytes (or until an error) from src to dst.
+// It returns the number of bytes copied and the earliest
+// error encountered while copying.
+// On return, written == n if and only if err == nil.
+//
+// If dst implements the ReaderFrom interface,
+// the copy is implemented using it.
+func CopyN(dst io.Writer, src io.Reader, n int64) (written int64, err error) {
+	written, err = Copy(dst, io.LimitReader(src, n))
+	if written == n {
+		return n, nil
+	}
+	if written < n && err == nil {
+		// src stopped early; must have been EOF.
+		err = io.EOF
+	}
+	return
+}
+
+func Copy(dst io.Writer, src io.Reader) (written int64, err error) {
+	return copyBuffer(dst, src, nil)
+}
+
+// copyBuffer is the actual implementation of Copy and CopyBuffer.
+// if buf is nil, one is allocated.
+func copyBuffer(dst io.Writer, src io.Reader, buf []byte) (written int64, err error) {
+	// If the reader has a WriteTo method, use it to do the copy.
+	// Avoids an allocation and a copy.
+	if wt, ok := src.(io.WriterTo); ok {
+		return wt.WriteTo(dst)
+	}
+	// Similarly, if the writer has a ReadFrom method, use it to do the copy.
+	if rt, ok := dst.(io.ReaderFrom); ok {
+		return rt.ReadFrom(src)
+	}
+	if buf == nil {
+		size := 32 * 1024
+		if l, ok := src.(*io.LimitedReader); ok && int64(size) > l.N {
+			if l.N < 1 {
+				size = 1
+			} else {
+				size = int(l.N)
 			}
-			//fmt.Println("transferfile") //only for dev
-			n, err := buf.Read(buf_b)
-			w.Write(buf_b[:n])
-			//time.Sleep(time.Millisecond*100) //only for dev
-			if err == io.EOF || n == 0 {
+		}
+		buf = make([]byte, size)
+	}
+	for {
+		for time.Now().Unix() < global.PauseMoment {
+			//fmt.Println("pausing") //only for dev
+			time.Sleep(time.Millisecond * 100)
+		}
+		nr, er := src.Read(buf)
+		if nr > 0 {
+			nw, ew := dst.Write(buf[0:nr])
+			if nw > 0 {
+				written += int64(nw)
+			}
+			if ew != nil {
+				err = ew
+				break
+			}
+			if nr != nw {
+				err = io.ErrShortWrite
 				break
 			}
 		}
+		if er != nil {
+			if er != io.EOF {
+				err = er
+			}
+			break
+		}
 	}
+	return written, err
 }
 
 // scanETag determines if a syntactically valid ETag is present at s. If so,
@@ -865,4 +926,8 @@ func sumRangesSize(ranges []httpRange) (size int64) {
 		size += ra.length
 	}
 	return
+}
+
+func transferCacheFileFS(ctx *gin.Context, filePath string) {
+	ServeFile(ctx.Writer, ctx.Request, filePath)
 }

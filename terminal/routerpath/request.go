@@ -1,6 +1,7 @@
 package routerpath
 
 import (
+	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,9 @@ func RequestServer() *gin.Engine {
 	corsConfig.AllowCredentials = true
 	corsConfig.AddAllowHeaders("Authorization")
 	cdnGin.Use(cors.New(corsConfig))
+
+	//send panic to server
+	cdnGin.Use(panichandler.Recover)
 
 	//http://bindname-terminaltag.shoppynext.com/xxxxxxxxx
 	cdnGin.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedExtensions([]string{".bin"})))

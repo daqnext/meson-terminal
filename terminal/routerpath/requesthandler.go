@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"github.com/daqnext/meson-common/common/accountmgr"
 	"github.com/daqnext/meson-common/common/commonmsg"
-	"github.com/daqnext/meson-common/common/downloadtaskmgr"
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/resp"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/account"
+	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
+	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/daqnext/meson-terminal/terminal/manager/security"
 	"github.com/gin-gonic/gin"
 	"strconv"
@@ -44,6 +45,10 @@ func requestCachedFilesHandler(ctx *gin.Context, bindName string, filePath strin
 		//fileName := path.Base(filePath)
 		filePath = strings.Replace(filePath, "-redirecter456gt", "", 1)
 		//set access time
+
+		// mapcount++
+		// defer mapcount--
+
 		go ldb.SetAccessTimeStamp(bindName+filePath, time.Now().Unix())
 		transferCacheFileFS(ctx, storagePath)
 		return
@@ -56,6 +61,8 @@ func requestCachedFilesHandler(ctx *gin.Context, bindName string, filePath strin
 
 	//notify server delete cache state
 	go func() {
+		defer panichandler.CatchPanicStack()
+
 		header := map[string]string{
 			"Content-Type":  "application/json",
 			"Authorization": "Bearer " + accountmgr.Token,
@@ -113,16 +120,8 @@ func saveNewFileHandler(ctx *gin.Context) {
 	fileSize := downloadCmd.FileSize
 	filemgr.GenDiskSpace(fileSize)
 
-	err := downloadtaskmgr.AddTask(
-		downloadCmd.DownloadUrl,
-		downloadCmd.TransferTag,
-		downloadCmd.Continent,
-		downloadCmd.Country,
-		downloadCmd.Area,
-		downloadCmd.BindNameHash,
-		downloadCmd.FileNameHash,
-		0,
-	)
+	//就加入新的下载任务
+	err := downloader.AddToDownloadQueue(downloadCmd)
 	if err != nil {
 		resp.ErrorResp(ctx, resp.ErrAddDownloadTaskFailed)
 		return

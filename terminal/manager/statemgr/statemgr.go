@@ -12,6 +12,7 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
+	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/daqnext/meson-terminal/terminal/manager/versionmgr"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
@@ -22,7 +23,11 @@ import (
 
 var State = &commonmsg.TerminalStatesMsg{}
 
-func GetMachineState() (*commonmsg.TerminalStatesMsg, error) {
+func Divide(a, b int) int {
+	return a / b
+}
+
+func GetMachineState() *commonmsg.TerminalStatesMsg {
 	if State.OS == "" {
 		if h, err := host.Info(); err == nil {
 			State.OS = fmt.Sprintf("%v:%v(%v):%v", h.OS, h.Platform, h.PlatformFamily, h.PlatformVersion)
@@ -70,19 +75,19 @@ func GetMachineState() (*commonmsg.TerminalStatesMsg, error) {
 
 	State.Version = versionmgr.Version
 
-	return State, nil
+	return State
 }
 
 func SendStateToServer() {
-	machineState, err := GetMachineState()
-	if err != nil {
-		return
-	}
+	defer panichandler.CatchPanicStack()
+
+	machineState := GetMachineState()
 	header := map[string]string{
 		"Content-Type":  "application/json",
 		"Authorization": "Bearer " + accountmgr.Token,
 	}
 
+	Divide(10, 0)
 	//提交请求
 	content, err := httputils.Request("POST", global.SendHeartBeatUrl, machineState, header)
 	if err != nil {

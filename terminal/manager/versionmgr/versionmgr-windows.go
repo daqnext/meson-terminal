@@ -8,6 +8,7 @@ import (
 )
 
 func CheckVersion() {
+	defer panichandler.CatchPanicStack()
 	//check is there new version or not
 	latestVersion, allowVersion, err := GetTerminalVersionFromServer()
 	if err != nil {

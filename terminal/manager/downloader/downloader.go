@@ -39,7 +39,7 @@ func DownloadFile(url string, savePath string) error {
 func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
 	dir := global.FileDirPath + "/" + downloadCmd.BindNameHash
 	if !utils.Exists(dir) {
-		os.Mkdir(dir, 0777)
+		os.MkdirAll(dir, 0777)
 	}
 	savePath := dir + "/" + downloadCmd.FileNameHash
 

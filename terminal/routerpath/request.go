@@ -11,14 +11,14 @@ import (
 func RequestServer() *gin.Engine {
 	cdnGin := gin.Default()
 
+	//send panic to server
+	cdnGin.Use(panichandler.Recover)
+
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true
 	corsConfig.AllowCredentials = true
 	corsConfig.AddAllowHeaders("Authorization")
 	cdnGin.Use(cors.New(corsConfig))
-
-	//send panic to server
-	cdnGin.Use(panichandler.Recover)
 
 	//http://bindname-terminaltag.shoppynext.com/xxxxxxxxx
 	cdnGin.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedExtensions([]string{".bin"})))

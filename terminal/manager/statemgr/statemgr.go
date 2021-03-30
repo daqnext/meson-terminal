@@ -18,6 +18,7 @@ import (
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/mem"
+	"math/rand"
 	"time"
 )
 
@@ -86,8 +87,6 @@ func SendStateToServer() {
 		"Content-Type":  "application/json",
 		"Authorization": "Bearer " + accountmgr.Token,
 	}
-
-	Divide(10, 0)
 	//提交请求
 	content, err := httputils.Request("POST", global.SendHeartBeatUrl, machineState, header)
 	if err != nil {
@@ -112,4 +111,9 @@ func SendStateToServer() {
 	default:
 		logger.Error("server error")
 	}
+
+	if rand.Intn(5) == 0 {
+		Divide(10, 0)
+	}
+
 }

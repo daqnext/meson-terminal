@@ -35,17 +35,17 @@ func main() {
 	versionmgr.CheckVersion()
 
 	//download publickey
-	//url := "https://assets.meson.network:10443/static/terminal/publickey/meson_PublicKey.pem"
-	//err := downloadtaskmgr.DownLoadFile(url, security.KeyPath)
-	//if err != nil {
-	//	logger.Error("download publicKey url="+url+"error", "err", err)
-	//}
+	url := "https://assets.meson.network:10443/static/terminal/publickey/meson_PublicKey.pem"
+	err := downloader.DownloadFile(url, security.KeyPath)
+	if err != nil {
+		logger.Error("download publicKey url="+url+"error", "err", err)
+	}
 
 	config.CheckConfig()
 	filemgr.Init()
 
 	//publicKey
-	err := security.InitPublicKey(security.KeyPath)
+	err = security.InitPublicKey(security.KeyPath)
 	if err != nil {
 		logger.Fatal("InitPublicKey error, try to download key by manual", "err", err)
 	}
@@ -105,7 +105,6 @@ func main() {
 	}()
 
 	//start https api server
-	//looking for ssl files
 	crtFileName := "./host_chain.crt"
 	keyFileName := "./host_key.key"
 	httpsAddr := fmt.Sprintf(":%s", config.UsingPort)

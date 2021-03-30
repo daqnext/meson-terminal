@@ -5,6 +5,7 @@ package versionmgr
 import (
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/utils"
+	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 )
 
 func CheckVersion() {

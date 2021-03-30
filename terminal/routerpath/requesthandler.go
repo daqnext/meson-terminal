@@ -155,7 +155,7 @@ func pauseHandler(ctx *gin.Context) {
 
 	pauseTime := 4
 	if msg.PauseTime > 0 && msg.PauseTime < 10 {
-		pauseTime = msg.PauseTime
+		pauseTime = msg.PauseTime + 1
 	}
 
 	global.PauseMoment = time.Now().Unix() + int64(pauseTime)

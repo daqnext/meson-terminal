@@ -11,50 +11,30 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"time"
 )
 
-//func DownloadFunc(task *downloadtaskmgr.DownloadTask) error {
-//	dir := global.FileDirPath + "/" + task.BindNameHash
-//	if !utils.Exists(dir) {
-//		os.Mkdir(dir, 0777)
-//	}
-//	fileName := utils.FileAddMark(task.FileNameHash, common.RedirectMark)
-//	filePath := dir + "/" + fileName
-//
-//	err := downloadtaskmgr.DownLoadFile(task.TargetUrl, filePath)
-//	if err != nil {
-//		logger.Error("download file url="+task.TargetUrl+"error", "err", err)
-//		return err
-//	}
-//	go ldb.SetAccessTimeStamp(task.BindNameHash+"/"+task.FileNameHash, time.Now().Unix())
-//	//get file size
-//	fileInfo, err := os.Stat(filePath)
-//	if err == nil {
-//		filemgr.CdnSpaceUsed += fileInfo.Size()
-//	}
-//
-//	//post download finish msg to server
-//	payload := commonmsg.TerminalDownloadFinishMsg{
-//		TransferTag:  task.OriginTag,
-//		FileNameHash: task.FileName,
-//		BindNameHash: task.BindName,
-//		Continent:    task.Continent,
-//		Country:      task.Country,
-//		Area:         task.Area,
-//	}
-//	header := map[string]string{
-//		"Content-Type":  "application/json",
-//		"Authorization": "Bearer " + accountmgr.Token,
-//	}
-//	_, err = httputils.Request("POST", global.ReportDownloadFinishUrl, payload, header)
-//	if err != nil {
-//		logger.Error("send downloadfinish msg to server error", "err", err)
-//	}
-//
-//	return nil
-//}
+func DownloadFile(url string, savePath string) error {
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(savePath, data, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
 	dir := global.FileDirPath + "/" + downloadCmd.BindNameHash

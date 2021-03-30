@@ -2,7 +2,6 @@ package panichandler
 
 import (
 	"errors"
-	"fmt"
 	"github.com/daqnext/meson-common/common/accountmgr"
 	"github.com/daqnext/meson-common/common/commonmsg"
 	"github.com/daqnext/meson-common/common/enum/machinetype"
@@ -38,35 +37,21 @@ func CatchPanicStack() {
 	}
 	err, ok := errs.(error)
 	if ok == false {
-		logger.Debug("turn to error fail")
 		err = errors.New("turn to error fail")
 	}
 
 	str := string(debug.Stack())
-	fmt.Println("===error===")
-	fmt.Println(err)
-	fmt.Println(str)
-	fmt.Println("===error===")
+	logger.Debug("===error===")
+	logger.Debug("Catch error", "err", err)
+	logger.Debug(str)
+	logger.Debug("===error===")
 
-	//machineStat:=statemgr.GetMachineState()
 	report := &commonmsg.PanicReportMsg{
 		MachineType: machinetype.Terminal,
 		TimeStamp:   time.Now().Unix(),
 		Error:       err.Error(),
 		Stack:       string(debug.Stack()),
 	}
-	//report.OS=machineStat.OS
-	//report.CPU = machineStat.CPU
-	//report.Port = machineStat.Port
-	//report.CdnDiskTotal = machineStat.CdnDiskTotal
-	//report.CdnDiskAvailable = machineStat.CdnDiskAvailable
-	//report.MacAddr = machineStat.MacAddr
-	//report.MemTotal = machineStat.MemTotal
-	//report.MemAvailable = machineStat.MemAvailable
-	//report.DiskTotal = machineStat.DiskTotal
-	//report.DiskAvailable = machineStat.DiskAvailable
-	//report.Version = machineStat.Version
-	//report.CpuUsage = machineStat.CpuUsage
 
 	_, err = httputils.Request("POST", global.PanicReportUrl, report, header)
 	if err != nil {

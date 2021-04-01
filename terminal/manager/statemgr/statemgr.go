@@ -18,15 +18,10 @@ import (
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/mem"
-	"math/rand"
 	"time"
 )
 
 var State = &commonmsg.TerminalStatesMsg{}
-
-func Divide(a, b int) int {
-	return a / b
-}
 
 func GetMachineState() *commonmsg.TerminalStatesMsg {
 	if State.OS == "" {
@@ -111,9 +106,4 @@ func SendStateToServer() {
 	default:
 		logger.Error("server error")
 	}
-
-	if rand.Intn(5) == 0 {
-		Divide(10, 0)
-	}
-
 }

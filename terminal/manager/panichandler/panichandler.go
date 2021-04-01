@@ -40,11 +40,11 @@ func CatchPanicStack() {
 		err = errors.New("turn to error fail")
 	}
 
-	str := string(debug.Stack())
-	logger.Debug("===error===")
-	logger.Debug("Catch error", "err", err)
-	logger.Debug(str)
-	logger.Debug("===error===")
+	//str := string(debug.Stack())
+	//logger.Debug("===error===")
+	//logger.Debug("Catch error", "err", err)
+	//logger.Debug(str)
+	//logger.Debug("===error===")
 
 	report := &commonmsg.PanicReportMsg{
 		MachineType: machinetype.Terminal,

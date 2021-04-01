@@ -108,7 +108,7 @@ func OnDownloadFailed(task *downloadtaskmgr.DownloadTask) {
 func StartDownloadJob() {
 	//create folder
 	if !utils.Exists(global.FileDirPath) {
-		os.Mkdir(global.FileDirPath, 0777)
+		os.MkdirAll(global.FileDirPath, 0777)
 	}
 
 	downloadtaskmgr.InitTaskMgr("./task")

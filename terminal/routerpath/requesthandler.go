@@ -83,7 +83,7 @@ func requestCachedFilesHandler(ctx *gin.Context, bindName string, filePath strin
 		switch respBody2.Status {
 		case 0:
 			//get right request
-			logger.Debug("notify server delete missing file success", "file")
+			logger.Debug("notify server delete missing file success", "file", bindName+filePath)
 		default:
 			logger.Error("notify server delete missing file fail")
 		}

@@ -9,7 +9,7 @@ import (
 	"runtime"
 )
 
-const Version = "2.0.1"
+const Version = "2.0.2"
 
 func GetOSInfo() (arch string, osInfo string) {
 	arch = "amd64"

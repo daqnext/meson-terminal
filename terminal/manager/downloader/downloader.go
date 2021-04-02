@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"github.com/daqnext/meson-common/common"
 	"github.com/daqnext/meson-common/common/accountmgr"
 	"github.com/daqnext/meson-common/common/commonmsg"
 	"github.com/daqnext/meson-common/common/downloadtaskmgr"
@@ -39,9 +40,10 @@ func DownloadFile(url string, savePath string) error {
 func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
 	dir := global.FileDirPath + "/" + downloadCmd.BindNameHash
 	if !utils.Exists(dir) {
-		os.MkdirAll(dir, 0777)
+		os.Mkdir(dir, 0777)
 	}
-	savePath := dir + "/" + downloadCmd.FileNameHash
+	fileName := utils.FileAddMark(downloadCmd.FileNameHash, common.RedirectMark)
+	savePath := dir + "/" + fileName
 
 	info := &downloadtaskmgr.DownloadInfo{
 		TargetUrl: downloadCmd.DownloadUrl,
@@ -58,6 +60,8 @@ func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
 }
 
 func OnDownloadSuccess(task *downloadtaskmgr.DownloadTask) {
+	logger.Debug("download success", "task", task)
+
 	filePath := task.SavePath
 	go ldb.SetAccessTimeStamp(task.BindName+"/"+task.FileName, time.Now().Unix())
 	//get file size
@@ -86,6 +90,8 @@ func OnDownloadSuccess(task *downloadtaskmgr.DownloadTask) {
 }
 
 func OnDownloadFailed(task *downloadtaskmgr.DownloadTask) {
+	logger.Debug("download fail", "task", task)
+
 	//post failed msg to server
 	payload := commonmsg.TerminalDownloadFailedMsg{
 		TransferTag:  task.OriginTag,
@@ -108,7 +114,7 @@ func OnDownloadFailed(task *downloadtaskmgr.DownloadTask) {
 func StartDownloadJob() {
 	//create folder
 	if !utils.Exists(global.FileDirPath) {
-		os.MkdirAll(global.FileDirPath, 0777)
+		os.Mkdir(global.FileDirPath, 0777)
 	}
 
 	downloadtaskmgr.InitTaskMgr("./task")

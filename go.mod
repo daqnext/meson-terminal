@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
-	github.com/daqnext/meson-common v1.0.12
+	github.com/daqnext/meson-common v1.0.20
 	github.com/fvbock/endless v0.0.0-20170109170031-447134032cb6
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-contrib/gzip v0.0.3
@@ -16,4 +16,4 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca
 )
 
-replace github.com/daqnext/meson-common => /Users/zhangzhenbo/workspace/go/project/meson-common
+//replace github.com/daqnext/meson-common => /Users/zhangzhenbo/workspace/go/project/meson-common

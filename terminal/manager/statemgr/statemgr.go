@@ -10,6 +10,7 @@ import (
 	"github.com/daqnext/meson-common/common/resp"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
+	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
@@ -18,16 +19,24 @@ import (
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/mem"
+	"runtime"
 	"time"
 )
 
 var State = &commonmsg.TerminalStatesMsg{}
+
+//linux  ls -lact --full-time /etc | tail -1 |awk '{print $6,$7}'
+//mac
 
 func GetMachineState() *commonmsg.TerminalStatesMsg {
 	if State.OS == "" {
 		if h, err := host.Info(); err == nil {
 			State.OS = fmt.Sprintf("%v:%v(%v):%v", h.OS, h.Platform, h.PlatformFamily, h.PlatformVersion)
 		}
+	}
+
+	if State.MachineSetupTime == "" {
+		State.MachineSetupTime = GetMachineSetupTime()
 	}
 
 	if State.CPU == "" {
@@ -49,7 +58,7 @@ func GetMachineState() *commonmsg.TerminalStatesMsg {
 		State.MemAvailable = v.Available
 	}
 
-	if d, err := disk.Usage("./"); err == nil {
+	if d, err := disk.Usage("/"); err == nil {
 		State.DiskTotal = d.Total
 		State.DiskAvailable = d.Free
 	}
@@ -74,6 +83,23 @@ func GetMachineState() *commonmsg.TerminalStatesMsg {
 	return State
 }
 
+func GetMachineSetupTime() string {
+	switch runtime.GOOS {
+	case "linux":
+		result, err := utils.RunCommand("ls", "-lact --full-time /etc | tail -1 |awk '{print $6,$7}'")
+		if err != nil {
+			logger.Debug("aws ec2 describe-addresses err", "err", err)
+			return ""
+		}
+		return result
+	case "windows":
+		return "windows unknown"
+	case "darwin":
+		return "darwin unknown"
+	}
+	return "unknown"
+}
+
 func SendStateToServer() {
 	defer panichandler.CatchPanicStack()
 
@@ -83,7 +109,7 @@ func SendStateToServer() {
 		"Authorization": "Bearer " + accountmgr.Token,
 	}
 	//提交请求
-	content, err := httputils.Request("POST", global.SendHeartBeatUrl, machineState, header)
+	content, err := httputils.Request("POST", domainmgr.UsingDomain+global.SendHeartBeatUrl, machineState, header)
 	if err != nil {
 		logger.Error("send terminalState to server error", "err", err)
 		return

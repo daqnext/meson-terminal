@@ -31,6 +31,7 @@ func TerminalLogin(url string, token string) {
 	)
 	if err != nil {
 		logger.Fatal("Login failed Fatal error ", "err", err.Error())
+		return
 	}
 
 	defer res.Body.Close()
@@ -54,7 +55,16 @@ func TerminalLogin(url string, token string) {
 		logger.Info("login success! Terminal start...")
 		accountmgr.Token = Token
 		space := strconv.Itoa(config.UsingSpaceLimit)
-		config.RecordConfigToFile(Token, config.UsingPort, space)
+		//config.RecordUserInputConfigToFile(Token, config.UsingPort, space)
+		newConfigs := map[string]string{
+			config.Token:      Token,
+			config.Port:       config.UsingPort,
+			config.SpaceLimit: space,
+		}
+		err := config.RecordConfigToFile(newConfigs)
+		if err != nil {
+			logger.Error("RecordConfigToFile error", "err", err)
+		}
 	default:
 		logger.Fatal("Token error,please login the website to get token")
 	}

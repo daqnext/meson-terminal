@@ -134,51 +134,11 @@ func dirList(w http.ResponseWriter, r *http.Request, f File) {
 	fmt.Fprintf(w, "</pre>\n")
 }
 
-// ServeContent replies to the http.Request using the content in the
-// provided ReadSeeker. The main benefit of ServeContent over io.Copy
-// is that it handles Range http.Requests properly, sets the MIME type, and
-// handles If-Match, If-Unmodified-Since, If-None-Match, If-Modified-Since,
-// and If-Range http.Requests.
-//
-// If the response's Content-Type header is not set, ServeContent
-// first tries to deduce the type from name's file extension and,
-// if that fails, falls back to reading the first block of the content
-// and passing it to DetectContentType.
-// The name is otherwise unused; in particular it can be empty and is
-// never sent in the response.
-//
-// If modtime is not the zero time or Unix epoch, ServeContent
-// includes it in a Last-Modified header in the response. If the
-// http.Request includes an If-Modified-Since header, ServeContent uses
-// modtime to decide whether the content needs to be sent at all.
-//
-// The content's Seek method must work: ServeContent uses
-// a seek to the end of the content to determine its size.
-//
-// If the caller has set w's ETag header formatted per RFC 7232, section 2.3,
-// ServeContent uses it to handle http.Requests using If-Match, If-None-Match, or If-Range.
-//
-// Note that *os.File implements the io.ReadSeeker interface.
-func ServeContent(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) {
-	sizeFunc := func() (int64, error) {
-		size, err := content.Seek(0, io.SeekEnd)
-		if err != nil {
-			return 0, errSeeker
-		}
-		_, err = content.Seek(0, io.SeekStart)
-		if err != nil {
-			return 0, errSeeker
-		}
-		return size, nil
-	}
-	serveContent(w, req, name, modtime, sizeFunc, content)
-}
-
 // errSeeker is returned by ServeContent's sizeFunc when the content
 // doesn't seek properly. The underlying Seeker's error text isn't
 // included in the sizeFunc reply so it's not sent over HTTP to end
 // users.
-var errSeeker = errors.New("seeker can't seek")
+//var errSeeker = errors.New("seeker can't seek")
 
 // errNoOverlap is returned by serveContent's parseRange if first-byte-pos of
 // all of the byte-range-spec values is greater than the content size.
@@ -784,34 +744,6 @@ func containsDotDot(v string) bool {
 }
 
 func isSlashRune(r rune) bool { return r == '/' || r == '\\' }
-
-type fileHandler struct {
-	root FileSystem
-}
-
-// FileServer returns a handler that serves HTTP http.Requests
-// with the contents of the file system rooted at root.
-//
-// To use the operating system's file system implementation,
-// use http.Dir:
-//
-//     http.Handle("/", http.FileServer(http.Dir("/tmp")))
-//
-// As a special case, the returned file server redirects any http.Request
-// ending in "/index.html" to the same path, without the final
-// "index.html".
-func FileServer(root FileSystem) http.Handler {
-	return &fileHandler{root}
-}
-
-func (f *fileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	upath := r.URL.Path
-	if !strings.HasPrefix(upath, "/") {
-		upath = "/" + upath
-		r.URL.Path = upath
-	}
-	serveFile(w, r, f.root, path.Clean(upath), true)
-}
 
 // httpRange specifies the byte range to be sent to the client.
 type httpRange struct {

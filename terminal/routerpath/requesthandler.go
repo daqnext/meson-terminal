@@ -9,6 +9,7 @@ import (
 	"github.com/daqnext/meson-common/common/resp"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/account"
+	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
@@ -56,7 +57,8 @@ func requestCachedFilesHandler(ctx *gin.Context, bindName string, filePath strin
 
 	//if not exist
 	//redirect to server
-	serverUrl := global.ServerDomain + "/api/cdn/" + bindName + filePath
+	//todo: cdnDomain
+	serverUrl := domainmgr.UsingDomain + "/api/cdn/" + bindName + filePath
 	ctx.Redirect(302, serverUrl)
 
 	//notify server delete cache state
@@ -70,7 +72,7 @@ func requestCachedFilesHandler(ctx *gin.Context, bindName string, filePath strin
 		payload := commonmsg.TerminalRequestDeleteFilesMsg{
 			Files: []string{bindName + filePath},
 		}
-		respCtx, err := httputils.Request("POST", global.RequestToDeleteFilsUrl, payload, header)
+		respCtx, err := httputils.Request("POST", domainmgr.UsingDomain+global.RequestToDeleteFilesUrl, payload, header)
 		if err != nil {
 			logger.Error("Request DeleteFiles error", "err", err)
 			return

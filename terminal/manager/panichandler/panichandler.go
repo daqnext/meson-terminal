@@ -7,6 +7,7 @@ import (
 	"github.com/daqnext/meson-common/common/enum/machinetype"
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/gin-gonic/gin"
 	"runtime/debug"
@@ -53,7 +54,7 @@ func CatchPanicStack() {
 		Stack:       string(debug.Stack()),
 	}
 
-	_, err = httputils.Request("POST", global.PanicReportUrl, report, header)
+	_, err = httputils.Request("POST", domainmgr.UsingDomain+global.PanicReportUrl, report, header)
 	if err != nil {
 		logger.Error("report panic to server error", "err", err)
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/utils"
+	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
@@ -38,18 +39,18 @@ func DownloadFile(url string, savePath string) error {
 }
 
 func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
-	dir := global.FileDirPath + "/" + downloadCmd.BindNameHash
+	dir := global.FileDirPath + "/" + downloadCmd.BindName
 	if !utils.Exists(dir) {
 		os.Mkdir(dir, 0777)
 	}
-	fileName := utils.FileAddMark(downloadCmd.FileNameHash, common.RedirectMark)
+	fileName := utils.FileAddMark(downloadCmd.FileName, common.RedirectMark)
 	savePath := dir + "/" + fileName
 
 	info := &downloadtaskmgr.DownloadInfo{
 		TargetUrl: downloadCmd.DownloadUrl,
-		OriginTag: downloadCmd.TransferTag,
-		BindName:  downloadCmd.BindNameHash,
-		FileName:  downloadCmd.FileNameHash,
+		//OriginTag: downloadCmd.TransferTag,
+		BindName:  downloadCmd.BindName,
+		FileName:  downloadCmd.FileName,
 		Continent: downloadCmd.Continent,
 		Country:   downloadCmd.Country,
 		Area:      downloadCmd.Area,
@@ -83,7 +84,7 @@ func OnDownloadSuccess(task *downloadtaskmgr.DownloadTask) {
 		"Content-Type":  "application/json",
 		"Authorization": "Bearer " + accountmgr.Token,
 	}
-	_, err = httputils.Request("POST", global.ReportDownloadFinishUrl, payload, header)
+	_, err = httputils.Request("POST", domainmgr.UsingDomain+global.ReportDownloadFinishUrl, payload, header)
 	if err != nil {
 		logger.Error("send downloadfinish msg to server error", "err", err)
 	}
@@ -105,7 +106,7 @@ func OnDownloadFailed(task *downloadtaskmgr.DownloadTask) {
 		"Content-Type":  "application/json",
 		"Authorization": "Bearer " + accountmgr.Token,
 	}
-	_, err := httputils.Request("POST", global.ReportDownloadFailedUrl, payload, header)
+	_, err := httputils.Request("POST", domainmgr.UsingDomain+global.ReportDownloadFailedUrl, payload, header)
 	if err != nil {
 		logger.Error("send downloadfailed msg to server error", "err", err)
 	}

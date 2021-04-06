@@ -1,13 +1,19 @@
 package main
 
 import (
+	//terminalLogger
+	_ "github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
+	//Init gin
+	"github.com/daqnext/meson-terminal/terminal/routerpath"
+
 	"fmt"
-	"github.com/daqnext/meson-common/common"
+	"github.com/daqnext/meson-common/common/ginrouter"
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-terminal/terminal/job"
 	"github.com/daqnext/meson-terminal/terminal/manager/account"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
+	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
@@ -15,10 +21,8 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/daqnext/meson-terminal/terminal/manager/security"
 	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
-	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
 	"github.com/daqnext/meson-terminal/terminal/manager/versionmgr"
-	"github.com/daqnext/meson-terminal/terminal/routerpath"
-	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 	"strconv"
 	"time"
 
@@ -26,10 +30,11 @@ import (
 	_ "github.com/daqnext/meson-terminal/terminal/routerpath/api"
 )
 
-func main() {
-	terminallogger.InitLogger()
+var g errgroup.Group
 
+func main() {
 	//domain check
+	domainmgr.CheckAvailableDomain()
 
 	//version check
 	versionmgr.CheckVersion()
@@ -51,7 +56,7 @@ func main() {
 	}
 
 	//login
-	account.TerminalLogin(global.TerminalLoginUrl, config.UsingToken)
+	account.TerminalLogin(domainmgr.UsingDomain+global.TerminalLoginUrl, config.UsingToken)
 
 	defer panichandler.CatchPanicStack()
 
@@ -69,11 +74,6 @@ func main() {
 		}
 	}()
 
-	//set gin mode
-	if config.GetString("ginMode") == "debug" {
-		gin.SetMode(gin.DebugMode)
-	}
-
 	//sync cdn dir size
 	filemgr.SyncCdnDirSize()
 	//download queue
@@ -86,8 +86,8 @@ func main() {
 		job.StartScheduleJob()
 	})
 
-	//start http api for server
-	go func() {
+	//start api server
+	g.Go(func() error {
 		port, _ := strconv.Atoi(config.UsingPort)
 		for true {
 			port++
@@ -96,23 +96,33 @@ func main() {
 			}
 			global.ApiPort = strconv.Itoa(port)
 			httpAddr := fmt.Sprintf(":%d", port)
-			httpGinServer := common.GinRouter
-			err := httpserver.StartHttpServer(httpAddr, httpGinServer)
+			testGinServer := ginrouter.GetGinInstance(routerpath.CheckStartGin)
+			err := httpserver.StartHttpServer(httpAddr, testGinServer.GinInstance)
 			if err != nil {
 				continue
 			}
 		}
-	}()
+		return nil
+	})
 
-	//start https api server
-	crtFileName := "./host_chain.crt"
-	keyFileName := "./host_key.key"
-	httpsAddr := fmt.Sprintf(":%s", config.UsingPort)
-	httpsGinServer := routerpath.RequestServer()
-	// https server
-	err = httpserver.StartHttpsServer(httpsAddr, crtFileName, keyFileName, httpsGinServer)
-	if err != nil {
-		logger.Error("https server start error", "err", err)
+	//start cdn server
+	g.Go(func() error {
+		//start https api server
+		crtFileName := "./host_chain.crt"
+		keyFileName := "./host_key.key"
+		httpsAddr := fmt.Sprintf(":%s", config.UsingPort)
+		httpsGinServer := ginrouter.GetGinInstance(routerpath.DefaultGin)
+		// https server
+		err = httpserver.StartHttpsServer(httpsAddr, crtFileName, keyFileName, httpsGinServer.GinInstance)
+		if err != nil {
+			logger.Error("https server start error", "err", err)
+			return err
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		logger.Fatal("gin server error", "err", err)
 	}
 }
 

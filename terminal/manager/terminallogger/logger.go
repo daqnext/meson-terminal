@@ -8,6 +8,10 @@ import (
 	"os"
 )
 
+func init() {
+	InitLogger()
+}
+
 func InitLogger() {
 	log := logrus.New()
 

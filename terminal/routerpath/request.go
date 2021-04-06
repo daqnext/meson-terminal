@@ -1,30 +1,45 @@
 package routerpath
 
 import (
+	"github.com/daqnext/meson-common/common/ginrouter"
+	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
-	"github.com/gin-contrib/cors"
+	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"strings"
 )
 
-func RequestServer() *gin.Engine {
-	cdnGin := gin.Default()
+const DefaultGin = "default"
+const CheckStartGin = "checkStart"
 
+func init() {
+	if config.GetString("ginMode") == "debug" {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	if logger.BaseLogger == nil {
+		terminallogger.InitLogger()
+	}
+	gin.DefaultWriter = logger.BaseLogger.Out
+
+	//outer request gin
+	defaultGin := ginrouter.New(DefaultGin)
 	//send panic to server
-	cdnGin.Use(panichandler.Recover)
-
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowAllOrigins = true
-	corsConfig.AllowCredentials = true
-	corsConfig.AddAllowHeaders("Authorization")
-	cdnGin.Use(cors.New(corsConfig))
-
+	defaultGin.GinInstance.Use(panichandler.Recover)
+	defaultGin.EnableDefaultCors()
+	//http://bindname.coldcdn.com/xxxxxxxxx
+	defaultGin.GinInstance.Any("/*action", requestHandler)
 	//http://bindname-terminaltag.shoppynext.com/xxxxxxxxx
-	cdnGin.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedExtensions([]string{".bin"})))
-	cdnGin.Any("/*action", requestHandler)
+	defaultGin.GinInstance.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedExtensions([]string{".bin"})))
 
-	return cdnGin
+	//inner check gin
+	checkStartGin := ginrouter.New(CheckStartGin)
+	//send panic to server
+	checkStartGin.GinInstance.Use(panichandler.Recover)
 }
 
 var HandlerMap = map[string]func(ctx *gin.Context){

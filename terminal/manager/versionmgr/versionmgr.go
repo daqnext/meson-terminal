@@ -5,6 +5,7 @@ import (
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/resp"
+	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"runtime"
 )
@@ -35,7 +36,7 @@ func GetTerminalVersionFromServer() (latestVersion string, allowVersion string, 
 	header := map[string]string{
 		"Content-Type": "application/json",
 	}
-	respCtx, err := httputils.Request("GET", global.RequestCheckVersion, nil, header)
+	respCtx, err := httputils.Request("GET", domainmgr.UsingDomain+global.RequestCheckVersion, nil, header)
 	if err != nil {
 		logger.Error("Request FileExpirationTime error", "err", err)
 		return "", "", err

@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -38,11 +39,16 @@ var (
 	UsingServerDomain string
 )
 
+var fileLock sync.Mutex
+
 func init() {
 	ReadConfig()
 }
 
-func RecordConfigToFile(token string, port string, space string) {
+func RecordConfigLineToFile(configName string, value string) {
+	fileLock.Lock()
+	defer fileLock.Unlock()
+
 	of, err := os.Open(ConfigPath)
 	if err != nil {
 		logger.Error("open file record token and port error", "err")
@@ -50,7 +56,10 @@ func RecordConfigToFile(token string, port string, space string) {
 	}
 	defer func() {
 		if of != nil {
-			of.Close()
+			e := of.Close()
+			if e != nil {
+				logger.Error("close config file error", "err", e)
+			}
 		}
 	}()
 
@@ -61,7 +70,197 @@ func RecordConfigToFile(token string, port string, space string) {
 	}
 	defer func() {
 		if nf != nil {
-			of.Close()
+			e := nf.Close()
+			if e != nil {
+				logger.Error("close config file error", "err", e)
+			}
+		}
+	}()
+
+	r := bufio.NewReader(of)
+	isNewField := true
+	for {
+		originLine, _, err := r.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			logger.Error("readline error", "err", err)
+			return
+		}
+
+		newLine := string(originLine)
+
+		modify := false
+		newLine, modify = overWriteLine(newLine, configName, value)
+		if modify == true {
+			isNewField = false
+		}
+
+		_, err = nf.WriteString(newLine + "\n")
+		if err != nil {
+			fmt.Println("write to file fail:", err)
+			return
+		}
+	}
+
+	if isNewField {
+		newLine := configName + " = " + value
+		_, err = nf.WriteString(newLine + "\n")
+		if err != nil {
+			fmt.Println("write to file fail:", err)
+			return
+		}
+	}
+
+	e := of.Close()
+	if e != nil {
+		logger.Error("close config file error", "err", e)
+	}
+	of = nil
+
+	e = nf.Close()
+	if e != nil {
+		logger.Error("close config file error", "err", e)
+	}
+	nf = nil
+
+	err = os.Remove(ConfigPath)
+	if err == nil {
+		e := os.Rename(ConfigPath+".mdf", ConfigPath)
+		if e != nil {
+			logger.Error("Rename config file error", "err", e)
+		}
+	}
+}
+
+func RecordConfigToFile(configs map[string]string) error {
+	fileLock.Lock()
+	defer fileLock.Unlock()
+
+	of, err := os.Open(ConfigPath)
+	if err != nil {
+		logger.Error("open file record token and port error", "err")
+		return err
+	}
+	defer func() {
+		if of != nil {
+			e := of.Close()
+			if e != nil {
+				logger.Error("close config file error", "err", e)
+			}
+		}
+	}()
+
+	nf, err := os.OpenFile(ConfigPath+".mdf", os.O_RDWR|os.O_CREATE, 0766)
+	if err != nil {
+		logger.Error("open file record token and port error", "err")
+		return err
+	}
+	defer func() {
+		if nf != nil {
+			e := nf.Close()
+			if e != nil {
+				logger.Error("close config file error", "err", e)
+			}
+		}
+	}()
+
+	r := bufio.NewReader(of)
+	configMapCopy := map[string]string{}
+	for k, v := range configs {
+		configMapCopy[k] = v
+	}
+
+	for {
+		originLine, _, err := r.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			logger.Error("readline error", "err", err)
+			return err
+		}
+
+		newLine := string(originLine)
+
+		for k, v := range configs {
+			modify := false
+			newLine, modify = overWriteLine(newLine, k, v)
+			if modify == true {
+				delete(configMapCopy, k)
+			}
+		}
+
+		_, err = nf.WriteString(newLine + "\n")
+		if err != nil {
+			fmt.Println("write to file fail:", err)
+			return err
+		}
+	}
+
+	for k, v := range configMapCopy {
+		newLine := k + " = " + v
+		_, err = nf.WriteString(newLine + "\n")
+		if err != nil {
+			fmt.Println("write to file fail:", err)
+			return err
+		}
+	}
+
+	e := of.Close()
+	if e != nil {
+		logger.Error("close config file error", "err", e)
+		return e
+	}
+	of = nil
+	e = nf.Close()
+	if e != nil {
+		logger.Error("close config file error", "err", e)
+		return e
+	}
+	nf = nil
+
+	err = os.Remove(ConfigPath)
+	if err == nil {
+		e := os.Rename(ConfigPath+".mdf", ConfigPath)
+		if e != nil {
+			logger.Error("Rename config file error", "err", e)
+			return e
+		}
+	}
+	return nil
+}
+
+func RecordUserInputConfigToFile(token string, port string, space string) {
+	fileLock.Lock()
+	defer fileLock.Unlock()
+
+	of, err := os.Open(ConfigPath)
+	if err != nil {
+		logger.Error("open file record token and port error", "err")
+		return
+	}
+	defer func() {
+		if of != nil {
+			e := of.Close()
+			if e != nil {
+				logger.Error("close config file error", "err", e)
+			}
+		}
+	}()
+
+	nf, err := os.OpenFile(ConfigPath+".mdf", os.O_RDWR|os.O_CREATE, 0766)
+	if err != nil {
+		logger.Error("open file record token and port error", "err")
+		return
+	}
+	defer func() {
+		if nf != nil {
+			e := nf.Close()
+			if e != nil {
+				logger.Error("close config file error", "err", e)
+			}
 		}
 	}()
 
@@ -78,9 +277,9 @@ func RecordConfigToFile(token string, port string, space string) {
 
 		newLine := string(originLine)
 
-		newLine = overWriteLine(newLine, "token", token)
-		newLine = overWriteLine(newLine, "port", port)
-		newLine = overWriteLine(newLine, "spacelimit", space)
+		newLine, _ = overWriteLine(newLine, Token, token)
+		newLine, _ = overWriteLine(newLine, Port, port)
+		newLine, _ = overWriteLine(newLine, SpaceLimit, space)
 
 		_, err = nf.WriteString(newLine + "\n")
 		if err != nil {
@@ -89,36 +288,44 @@ func RecordConfigToFile(token string, port string, space string) {
 		}
 	}
 
-	of.Close()
+	e := of.Close()
+	if e != nil {
+		logger.Error("close config file error", "err", e)
+	}
 	of = nil
-	nf.Close()
+	e = nf.Close()
+	if e != nil {
+		logger.Error("close config file error", "err", e)
+	}
 	nf = nil
 
 	err = os.Remove(ConfigPath)
 	if err == nil {
-		os.Rename(ConfigPath+".mdf", ConfigPath)
+		e := os.Rename(ConfigPath+".mdf", ConfigPath)
+		if e != nil {
+			logger.Error("Rename config file error", "err", e)
+		}
 	}
-
 }
 
-func overWriteLine(line string, vname string, v string) string {
+func overWriteLine(line string, vname string, v string) (string, bool) {
 	if strings.Index(line, "#") == 0 {
-		return line
+		return line, false
 	}
 	index := strings.Index(line, "=")
 	if index < 0 {
-		return line
+		return line, false
 	}
 	first := strings.TrimSpace(line[:index])
 	if len(first) == 0 {
-		return line
+		return line, false
 	}
 
 	if first == vname {
-		new := vname + " = " + v
-		return new
+		newLine := vname + " = " + v
+		return newLine, true
 	}
-	return line
+	return line, false
 }
 
 func ReadConfig() {
@@ -154,7 +361,10 @@ func CheckConfig() {
 	if UsingToken == "" {
 		fmt.Println("can not find your token. Please login https://meson.network")
 		fmt.Printf("Please enter your token: ")
-		fmt.Scanln(&mytoken)
+		_, err := fmt.Scanln(&mytoken)
+		if err != nil {
+			log.Fatalln("read input token error")
+		}
 		UsingToken = mytoken
 	}
 
@@ -166,22 +376,26 @@ func CheckConfig() {
 
 	if UsingPort == "" {
 		fmt.Printf("Please enter your port,CAN NOT be 80 or 443(default 19091): ")
-		fmt.Scanln(&myport)
+		_, err := fmt.Scanln(&myport)
+		if err != nil {
+			UsingPort = "19091"
+			fmt.Println("read input port error,server will be run in port:19091.You can modify this value in config.txt")
+		}
 		num, err := strconv.Atoi(myport)
 		if err != nil {
 			UsingPort = "19091"
-			fmt.Println("input port error,server will be run in port:19091")
+			fmt.Println("input port error,server will be run in port:19091.You can modify this value in config.txt")
 			//return
 		} else {
 			UsingPort = myport
 			if num < 1 || num > 65535 {
 				UsingPort = "19091"
-				fmt.Println("input port error,server will be run in port:19091")
+				fmt.Println("input port error,server will be run in port:19091.You can modify this value in config.txt")
 				//return
 			}
 			if num == 80 || num == 443 {
 				UsingPort = "19091"
-				fmt.Printf("port CAN NOT be %d,server will be run in port:19091 \n", num)
+				fmt.Printf("port CAN NOT be %d,server will be run in port:19091.You can modify this value in config.txt \n", num)
 				//return
 			}
 		}
@@ -191,7 +405,12 @@ func CheckConfig() {
 	if UsingSpaceLimit == 0 {
 		fmt.Println("Please input the disk space you want to provide.The more space you provide, the higher profit you will get")
 		fmt.Printf("For example if you provide 100GB, please input 100 (40GB disk space is the minimum, default will be 80GB):")
-		fmt.Scanln(&space)
+		_, err := fmt.Scanln(&space)
+		if err != nil {
+			UsingSpaceLimit = 80
+			fmt.Println("read input error,server will use default 80G.You can modify this value in config.txt")
+			return
+		}
 		num, err := strconv.Atoi(space)
 		if err != nil {
 			UsingSpaceLimit = 80
@@ -222,18 +441,29 @@ func ReadConfigFile() {
 
 	SetDefault(Token, "")
 	SetDefault(Port, "")
-	SetDefault(ServerDomain, "https://coldcdn.com")
+	SetDefault(ServerDomain, "")
 	SetDefault(SpaceLimit, "0")
 	SetDefault(ApiProto, "https")
 	SetDefault(LogLevel, "4")
 	SetDefault(GinMode, "release")
 }
 func loadConfigFromTxt(configPath string) {
+	fileLock.Lock()
+	defer fileLock.Unlock()
+
 	f, err := os.Open(configPath)
 	if err != nil {
-		panic(err)
+		logger.Error("open config file error", "err", err)
+		return
 	}
-	defer f.Close()
+	defer func() {
+		if f != nil {
+			e := f.Close()
+			if e != nil {
+				logger.Error("close config file error", "err", e)
+			}
+		}
+	}()
 
 	r := bufio.NewReader(f)
 	for {

@@ -31,18 +31,22 @@ var SpaceHoldFiles = []string{}
 var HoldFileSize = int64(0)
 var LeftSpace = int64(0)
 
-const eachHoldFileSize = 100 * 1000 * 1000
-const headSpace = 200 * 1000 * 1000
+const UnitK = 1 << 10
+const UnitM = 1 << 10 * 1 << 10
+const UnitG = 1 << 10 * 1 << 10 * 1 << 10
+
+const eachHoldFileSize = 100 * UnitM
+const headSpace = 200 * UnitM
 
 var lock sync.RWMutex
 
-var array = make([]byte, 1000*1000)
+var array = make([]byte, UnitM)
 var isNewStart = true
 
 func Init() {
-	CdnSpaceLimit = int64(config.UsingSpaceLimit * 1000000000)
+	CdnSpaceLimit = int64(config.UsingSpaceLimit * UnitG)
 
-	if CdnSpaceLimit < 40*1000000000 && config.GetString("runMode") != "local" {
+	if CdnSpaceLimit < 40*UnitG && config.GetString("runMode") != "local" {
 		logger.Fatal("40GB disk space is the minimum.")
 	}
 
@@ -70,12 +74,12 @@ func Init() {
 
 	//create std file
 	createStdFile(1, "byte")
-	createStdFile(1*1000*1000, "1")
-	createStdFile(2*1000*1000, "2")
-	createStdFile(5*1000*1000, "5")
-	createStdFile(10*1000*1000, "10")
-	createStdFile(50*1000*1000, "50")
-	createStdFile(100*1000*1000, "100")
+	createStdFile(1*UnitM, "1")
+	createStdFile(2*UnitM, "2")
+	createStdFile(5*UnitM, "5")
+	createStdFile(10*UnitM, "10")
+	createStdFile(50*UnitM, "50")
+	createStdFile(100*UnitM, "100")
 
 	SyncCdnDirSize()
 	SyncHoldFileDirSize()
@@ -157,7 +161,10 @@ func createSpaceHoldFile() {
 	//	logger.Error("Full holderFile error", "err", err, "fileName", fileName)
 	//}
 	for i := 0; i < 100; i++ {
-		f.Write(array)
+		_, err := f.Write(array)
+		if err != nil {
+			logger.Error("createSpaceHoldFile error", "err", err)
+		}
 	}
 
 	SpaceHoldFiles = append(SpaceHoldFiles, f.Name())

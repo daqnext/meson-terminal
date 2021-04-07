@@ -120,7 +120,7 @@ func saveNewFileHandler(ctx *gin.Context) {
 
 	//check disk space
 	fileSize := downloadCmd.FileSize
-	filemgr.GenDiskSpace(fileSize)
+	filemgr.GenDiskSpace(int64(fileSize))
 
 	//就加入新的下载任务
 	err := downloader.AddToDownloadQueue(downloadCmd)

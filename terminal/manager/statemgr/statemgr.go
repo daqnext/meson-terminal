@@ -24,6 +24,7 @@ import (
 )
 
 var State = &commonmsg.TerminalStatesMsg{}
+var ConsecutiveFailures = 0
 
 //linux  ls -lact --full-time /etc | tail -1 |awk '{print $6,$7}'
 //mac
@@ -100,6 +101,13 @@ func GetMachineSetupTime() string {
 	return "unknown"
 }
 
+func SendStateFail() {
+	ConsecutiveFailures++
+	if ConsecutiveFailures >= 6 {
+		domainmgr.CheckAvailableDomain()
+	}
+}
+
 func SendStateToServer() {
 	defer panichandler.CatchPanicStack()
 
@@ -112,17 +120,20 @@ func SendStateToServer() {
 	content, err := httputils.Request("POST", domainmgr.UsingDomain+global.SendHeartBeatUrl, machineState, header)
 	if err != nil {
 		logger.Error("send terminalState to server error", "err", err)
+		SendStateFail()
 		return
 	}
 	//logger.Debug("response form server", "response string", string(content))
 	var respBody resp.RespBody
 	if err := json.Unmarshal(content, &respBody); err != nil {
 		logger.Error("response from terminal unmarshal error", "err", err)
+		SendStateFail()
 		return
 	}
 
 	switch respBody.Status {
 	case 0:
+		ConsecutiveFailures = 0
 		//logger.Debug("send State success")
 	case 101: //auth error
 		logger.Error("auth error,please restart terminal with correct username and password")

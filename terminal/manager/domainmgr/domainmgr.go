@@ -1,24 +1,55 @@
 package domainmgr
 
 import (
+	"fmt"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/imroc/req"
+	"strconv"
 	"time"
 )
 
 var healthPath = "/api/testapi/health"
 var UsingDomain = config.UsingServerDomain
 
-var backupDomain = map[string]int{
-	"http://mesonbackup1.com:9090": 1,
-	"http://mesonbackup2.com:9090": 1,
-	"http://coldcdn.com":           1,
-	"http://mesonbackup4.com:9090": 1,
+var backupDomain = map[string]int{}
+var isCheckingAvailableDomain = false
+
+func init() {
+	for i := 10; i < 50; i = i + 10 {
+		k := utils.GetStringHash(strconv.Itoa(i))
+		k = k[3:18]
+		k = reverseString(k)
+		k = "http://" + k + ".com"
+		fmt.Println(k)
+
+		backupDomain[k] = 1
+	}
+	backupDomain[UsingDomain] = 1
+
+	fmt.Println(backupDomain)
+}
+func reverseString(s string) string {
+	runes := []rune(s)
+
+	for from, to := 0, len(runes)-1; from < to; from, to = from+1, to-1 {
+		runes[from], runes[to] = runes[to], runes[from]
+	}
+
+	return string(runes)
 }
 
 func CheckAvailableDomain() {
+
+	if isCheckingAvailableDomain {
+		return
+	}
 	logger.Debug("checking available domain")
+	isCheckingAvailableDomain = true
+	defer func() {
+		isCheckingAvailableDomain = false
+	}()
 
 	usingUrl := UsingDomain + healthPath
 	checkResult := CheckDomain(usingUrl)

@@ -29,6 +29,32 @@ var ConsecutiveFailures = 0
 //linux  ls -lact --full-time /etc | tail -1 |awk '{print $6,$7}'
 //mac
 
+var cpuUsageArray = []float64{}
+var cpuUsageSum = float64(0)
+
+func CalCpuAverageUsage() {
+	go func() {
+		for true {
+			percent, err := cpu.Percent(time.Second, false)
+			if err != nil {
+				logger.Error("failed to get cup usage", "err", err)
+			} else {
+				cpuUsageArray = append(cpuUsageArray, percent[0])
+				cpuUsageSum += percent[0]
+				if len(cpuUsageArray) > 10 {
+					cpuUsageSum -= cpuUsageArray[0]
+					cpuUsageArray = cpuUsageArray[1:]
+				}
+			}
+			if cpuUsageSum > 0 && len(cpuUsageArray) > 0 {
+				State.CpuUsage = cpuUsageSum / float64(len(cpuUsageArray))
+				//logger.Debug("CpuUsage","value",State.CpuUsage,"sum",cpuUsageSum,"array",cpuUsageArray)
+			}
+			time.Sleep(time.Second * 5)
+		}
+	}()
+}
+
 func GetMachineState() *commonmsg.TerminalStatesMsg {
 	if State.OS == "" {
 		if h, err := host.Info(); err == nil {
@@ -43,16 +69,15 @@ func GetMachineState() *commonmsg.TerminalStatesMsg {
 	if State.CPU == "" {
 		if c, err := cpu.Info(); err == nil {
 			State.CPU = c[0].ModelName
-			cpu.Percent(time.Second, false)
 		}
 	}
 
-	percent, err := cpu.Percent(time.Second, false)
-	if err != nil {
-		logger.Error("failed to get cup usage", "err", err)
-	} else {
-		State.CpuUsage = percent[0]
-	}
+	//percent, err := cpu.Percent(time.Second, false)
+	//if err != nil {
+	//	logger.Error("failed to get cup usage", "err", err)
+	//} else {
+	//	State.CpuUsage = percent[0]
+	//}
 
 	if v, err := mem.VirtualMemory(); err == nil {
 		State.MemTotal = v.Total

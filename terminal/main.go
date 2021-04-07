@@ -83,6 +83,7 @@ func main() {
 		logger.Info("Terminal Is Running on Port:" + config.UsingPort)
 		statemgr.SendStateToServer()
 		//start schedule job- upload terminal state
+		job.StartLoopJob()
 		job.StartScheduleJob()
 	})
 

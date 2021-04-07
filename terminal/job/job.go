@@ -16,7 +16,7 @@ func StartPreJob() {
 }
 
 func StartLoopJob() {
-
+	statemgr.CalCpuAverageUsage()
 }
 
 func StartScheduleJob() {

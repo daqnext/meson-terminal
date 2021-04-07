@@ -21,7 +21,7 @@ func init() {
 		k := utils.GetStringHash(strconv.Itoa(i))
 		k = k[3:18]
 		k = reverseString(k)
-		k = "http://" + k + ".com"
+		k = "http://" + k + ".com:9090"
 		fmt.Println(k)
 
 		backupDomain[k] = 1

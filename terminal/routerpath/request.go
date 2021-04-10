@@ -43,10 +43,11 @@ func init() {
 }
 
 var HandlerMap = map[string]func(ctx *gin.Context){
-	"POST /api/v1/file/save":  saveNewFileHandler,
-	"POST /api/v1/file/pause": pauseHandler,
-	"GET /api/testapi/test":   testHandler,
-	"GET /api/testapi/health": healthHandler,
+	"POST /api/v1/file/save":   saveNewFileHandler,
+	"POST /api/v1/file/delete": deleteFileHandler,
+	"POST /api/v1/file/pause":  pauseHandler,
+	"GET /api/testapi/test":    testHandler,
+	"GET /api/testapi/health":  healthHandler,
 }
 
 func requestHandler(ctx *gin.Context) {

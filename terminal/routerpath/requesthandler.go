@@ -120,6 +120,10 @@ func saveNewFileHandler(ctx *gin.Context) {
 
 	//check disk space
 	fileSize := downloadCmd.FileSize
+	//todo: handle if can not get file size
+	if fileSize == 0 {
+		fileSize = 1 * filemgr.UnitG
+	}
 	filemgr.GenDiskSpace(int64(fileSize))
 
 	//就加入新的下载任务
@@ -128,6 +132,41 @@ func saveNewFileHandler(ctx *gin.Context) {
 		resp.ErrorResp(ctx, resp.ErrAddDownloadTaskFailed)
 		return
 	}
+	resp.SuccessResp(ctx, nil)
+}
+
+func deleteFileHandler(ctx *gin.Context) {
+	//get cmd msg
+	var msg commonmsg.DownLoadFileCmdMsg
+	if err := ctx.ShouldBindJSON(&msg); err != nil {
+		resp.ErrorResp(ctx, resp.ErrMalParams)
+		return
+	}
+
+	//check sign
+	timeStamp := msg.TimeStamp
+	//make sure request is in 30s
+	if time.Now().Unix() > timeStamp+30 {
+		logger.Error("delete file request past due")
+		resp.ErrorResp(ctx, resp.ErrInternalError)
+		return
+	}
+
+	timeStampStr := strconv.FormatInt(timeStamp, 10)
+	pass := security.ValidateSignature(timeStampStr, msg.Sign)
+	if pass == false {
+		logger.Error("ValidateSignature fail")
+		resp.ErrorResp(ctx, resp.ErrInternalError)
+		return
+	}
+
+	err := filemgr.DeleteFile(msg.BindName, msg.FileName)
+	if err != nil {
+		logger.Error("Delete file fail")
+		resp.ErrorResp(ctx, resp.ErrInternalError)
+		return
+	}
+
 	resp.SuccessResp(ctx, nil)
 }
 

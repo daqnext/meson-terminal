@@ -17,11 +17,23 @@ var KeyPath = "./meson_PublicKey.pem"
 
 // ParsePublicKey
 func ParsePublicKey(publicKeyPath string) (*rsa.PublicKey, error) {
-	fp, _ := os.Open(publicKeyPath)
+	fp, err := os.Open(publicKeyPath)
+	if err != nil {
+		logger.Error("open publicKey error", "path", publicKeyPath)
+		return nil, err
+	}
 	defer fp.Close()
-	fileinfo, _ := fp.Stat()
+	fileinfo, err := fp.Stat()
+	if err != nil {
+		logger.Error("get publicKey stat error", "path", publicKeyPath)
+		return nil, err
+	}
 	buf := make([]byte, fileinfo.Size())
-	fp.Read(buf)
+	_, err = fp.Read(buf)
+	if err != nil {
+		logger.Error("read publicKey error", "path", publicKeyPath)
+		return nil, err
+	}
 
 	block, _ := pem.Decode(buf)
 	if block == nil {

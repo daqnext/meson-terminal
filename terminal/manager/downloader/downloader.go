@@ -73,7 +73,6 @@ func OnDownloadSuccess(task *downloadtaskmgr.DownloadTask) {
 
 	//post download finish msg to server
 	payload := commonmsg.TerminalDownloadFinishMsg{
-		TransferTag:  task.OriginTag,
 		FileNameHash: task.FileName,
 		BindNameHash: task.BindName,
 		Continent:    task.Continent,
@@ -95,7 +94,7 @@ func OnDownloadFailed(task *downloadtaskmgr.DownloadTask) {
 
 	//post failed msg to server
 	payload := commonmsg.TerminalDownloadFailedMsg{
-		TransferTag:  task.OriginTag,
+		//TransferTag:  task.OriginTag,
 		FileNameHash: task.FileName,
 		BindNameHash: task.BindName,
 		Continent:    task.Continent,

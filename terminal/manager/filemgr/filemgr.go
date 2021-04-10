@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/daqnext/meson-common/common"
 	"github.com/daqnext/meson-common/common/accountmgr"
 	"github.com/daqnext/meson-common/common/commonmsg"
 	"github.com/daqnext/meson-common/common/httputils"
@@ -325,6 +326,24 @@ func ScanExpirationFiles() {
 func DeleteEmptyFolder() {
 	defer panichandler.CatchPanicStack()
 	utils.DeleteEmptyFolders(global.FileDirPath)
+}
+
+func DeleteFile(bindName string, fileName string) error {
+	fixFileName := utils.FileAddMark(fileName, common.RedirectMark)
+	dir := global.FileDirPath + "/" + bindName
+
+	savePath := dir + "/" + fixFileName
+	if !utils.Exists(savePath) {
+		return nil
+	}
+
+	err := os.Remove(savePath)
+	if err != nil {
+		logger.Error("delete file error", "err", err, "file", savePath)
+		return err
+	}
+
+	return nil
 }
 
 func GenDiskSpace(fileSize int64) {

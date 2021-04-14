@@ -5,6 +5,7 @@ import (
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
+	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
 	"github.com/daqnext/meson-terminal/terminal/manager/versionmgr"
 	"github.com/robfig/cron/v3"
 	"math/rand"
@@ -16,7 +17,7 @@ func StartPreJob() {
 }
 
 func StartLoopJob() {
-	statemgr.CalCpuAverageUsage()
+	statemgr.LoopJob()
 }
 
 func StartScheduleJob() {
@@ -69,6 +70,15 @@ func StartScheduleJob() {
 		logger.Error("ScheduleJob-"+"DeleteEmptyFolder"+" start error", "err", err)
 	} else {
 		logger.Info("ScheduleJob-"+"DeleteEmptyFolder"+" start", "ID", jobId, "Schedule", schedule)
+	}
+
+	//delete logger file 1time/day
+	schedule = fmt.Sprintf("0 0 %d * * *", rand.Intn(24))
+	jobId, err = c.AddFunc(schedule, terminallogger.DeleteTimeoutLog)
+	if err != nil {
+		logger.Error("ScheduleJob-"+"DeleteTimeoutLog"+" start error", "err", err)
+	} else {
+		logger.Info("ScheduleJob-"+"DeleteTimeoutLog"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
 	c.Start()

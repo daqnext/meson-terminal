@@ -19,7 +19,7 @@ func Recover(c *gin.Context) {
 		CatchPanicStack()
 		c.Abort()
 	}()
-	//加载完 defer recover，继续后续接口调用
+	//use defer recover，into next middleware
 	c.Next()
 }
 

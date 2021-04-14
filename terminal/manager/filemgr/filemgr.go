@@ -1,7 +1,6 @@
 package filemgr
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"github.com/daqnext/meson-common/common"
@@ -17,10 +16,8 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/shirou/gopsutil/disk"
-	"github.com/syndtr/goleveldb/leveldb"
 	"io/ioutil"
 	"os"
-	"strings"
 	"sync"
 	"time"
 )
@@ -234,38 +231,15 @@ func ScanExpirationFiles() {
 		fileExpirationTime = int64(respBody.Data.(float64))
 		logger.Debug("get FileExpirationTime", "FileExpirationTime", fileExpirationTime)
 	default:
-		logger.Error("Request FileExpirationTime response ")
+		logger.Error("Request FileExpirationTime response err", "respBody.Status", respBody.Status)
 		return
 	}
 
-	//scan expiration time
-	expirationFils := []string{}
-
-	ldb.DBLock.Lock()
-	db, err := ldb.OpenDB()
+	expirationFiles, err := ldb.FindExpirationFiles(fileExpirationTime)
 	if err != nil {
-		logger.Error("ScanExpirationFiles open level db error", "err", err)
-		ldb.DBLock.Unlock()
 		return
 	}
-	iter := db.NewIterator(nil, nil)
-	nowTime := time.Now().Unix()
-	for iter.Next() {
-		key := iter.Key()
-		file := string(key)
-		if strings.Contains(file, "standardfile") {
-			continue
-		}
-		value := iter.Value()
-		lastAccessTimeStamp := int64(binary.LittleEndian.Uint64(value))
-		if nowTime-lastAccessTimeStamp > fileExpirationTime {
-			expirationFils = append(expirationFils, file)
-		}
-	}
-	db.Close()
-	ldb.DBLock.Unlock()
-
-	if len(expirationFils) == 0 {
+	if len(expirationFiles) == 0 {
 		return
 	}
 
@@ -275,7 +249,7 @@ func ScanExpirationFiles() {
 		"Authorization": "Bearer " + accountmgr.Token,
 	}
 	payload := commonmsg.TerminalRequestDeleteFilesMsg{
-		Files: expirationFils,
+		Files: expirationFiles,
 	}
 	respCtx, err = httputils.Request("POST", domainmgr.UsingDomain+global.RequestToDeleteFilesUrl, payload, header)
 	if err != nil {
@@ -291,28 +265,15 @@ func ScanExpirationFiles() {
 	case 0:
 		//get right request
 		logger.Debug("agree to delete files")
-		//delay 5 minutes delete
+		//delay 15 minutes delete
 		time.Sleep(15 * time.Minute)
 
-		batch := new(leveldb.Batch)
-		for _, v := range expirationFils {
-			os.Remove(global.FileDirPath + "/" + v)
-			//db.Delete([]byte(v), nil)
-			batch.Delete([]byte(v))
-		}
-		ldb.DBLock.Lock()
-		db, err := ldb.OpenDB()
-		if err != nil {
-			logger.Error("ScanExpirationFiles delete open level db error", "err", err)
-			ldb.DBLock.Unlock()
-			return
-		}
-		err = db.Write(batch, nil)
-		db.Close()
-		ldb.DBLock.Unlock()
+		err := ldb.BatchRemoveKey(expirationFiles)
 		if err != nil {
 			logger.Error("ScanExpirationFiles leveldb batch delete error", "err", err)
-			return
+		}
+		for _, v := range expirationFiles {
+			os.Remove(global.FileDirPath + "/" + v)
 		}
 		DeleteEmptyFolder()
 		FullSpace()
@@ -324,7 +285,6 @@ func ScanExpirationFiles() {
 }
 
 func DeleteEmptyFolder() {
-	defer panichandler.CatchPanicStack()
 	utils.DeleteEmptyFolders(global.FileDirPath)
 }
 
@@ -336,6 +296,12 @@ func DeleteFile(bindName string, fileName string) error {
 	if !utils.Exists(savePath) {
 		return nil
 	}
+
+	//delete ldb record
+	go func() {
+		panichandler.CatchPanicStack()
+		ldb.DeleteAccessTimeStamp(bindName + "/" + fixFileName)
+	}()
 
 	err := os.Remove(savePath)
 	if err != nil {

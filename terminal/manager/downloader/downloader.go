@@ -48,13 +48,13 @@ func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
 
 	info := &downloadtaskmgr.DownloadInfo{
 		TargetUrl: downloadCmd.DownloadUrl,
-		//OriginTag: downloadCmd.TransferTag,
 		BindName:  downloadCmd.BindName,
 		FileName:  downloadCmd.FileName,
 		Continent: downloadCmd.Continent,
 		Country:   downloadCmd.Country,
 		Area:      downloadCmd.Area,
 		SavePath:  savePath,
+		//CacheTime: downloadCmd.CacheTime,
 	}
 
 	return downloadtaskmgr.AddGlobalDownloadTask(info)
@@ -64,7 +64,11 @@ func OnDownloadSuccess(task *downloadtaskmgr.DownloadTask) {
 	logger.Debug("download success", "task", task)
 
 	filePath := task.SavePath
-	go ldb.SetAccessTimeStamp(task.BindName+"/"+task.FileName, time.Now().Unix())
+	fileName := utils.FileAddMark(task.FileName, common.RedirectMark)
+	go func() {
+		defer panichandler.CatchPanicStack()
+		ldb.SetAccessTimeStamp(task.BindName+"/"+fileName, time.Now().Unix())
+	}()
 	//get file size
 	fileInfo, err := os.Stat(filePath)
 	if err == nil {
@@ -94,7 +98,6 @@ func OnDownloadFailed(task *downloadtaskmgr.DownloadTask) {
 
 	//post failed msg to server
 	payload := commonmsg.TerminalDownloadFailedMsg{
-		//TransferTag:  task.OriginTag,
 		FileNameHash: task.FileName,
 		BindNameHash: task.BindName,
 		Continent:    task.Continent,

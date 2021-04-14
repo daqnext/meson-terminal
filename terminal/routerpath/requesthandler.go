@@ -2,6 +2,7 @@ package routerpath
 
 import (
 	"encoding/json"
+	"github.com/daqnext/meson-common/common"
 	"github.com/daqnext/meson-common/common/accountmgr"
 	"github.com/daqnext/meson-common/common/commonmsg"
 	"github.com/daqnext/meson-common/common/httputils"
@@ -17,7 +18,8 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/daqnext/meson-terminal/terminal/manager/security"
 	"github.com/gin-gonic/gin"
-	"strconv"
+	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -44,13 +46,16 @@ func requestCachedFilesHandler(ctx *gin.Context, bindName string, filePath strin
 	exist := utils.Exists(storagePath)
 	if exist {
 		//fileName := path.Base(filePath)
-		filePath = strings.Replace(filePath, "-redirecter456gt", "", 1)
+		filePath = strings.Replace(filePath, common.RedirectMark, "", 1)
 		//set access time
 
 		// mapcount++
 		// defer mapcount--
 
-		go ldb.SetAccessTimeStamp(bindName+filePath, time.Now().Unix())
+		go func() {
+			defer panichandler.CatchPanicStack()
+			ldb.SetAccessTimeStamp(bindName+filePath, time.Now().Unix())
+		}()
 		transferCacheFileFS(ctx, storagePath)
 		return
 	}
@@ -102,18 +107,8 @@ func saveNewFileHandler(ctx *gin.Context) {
 	}
 
 	//check sign
-	timeStamp := downloadCmd.TimeStamp
-	//make sure request is in 30s
-	if time.Now().Unix() > timeStamp+30 {
-		logger.Error("save file request past due")
-		resp.ErrorResp(ctx, resp.ErrInternalError)
-		return
-	}
-
-	timeStampStr := strconv.FormatInt(timeStamp, 10)
-	pass := security.ValidateSignature(timeStampStr, downloadCmd.Sign)
+	pass := security.CheckRequestLegal(downloadCmd.TimeStamp, downloadCmd.MachineMac, downloadCmd.Sign)
 	if pass == false {
-		logger.Error("ValidateSignature fail")
 		resp.ErrorResp(ctx, resp.ErrInternalError)
 		return
 	}
@@ -144,18 +139,8 @@ func deleteFileHandler(ctx *gin.Context) {
 	}
 
 	//check sign
-	timeStamp := msg.TimeStamp
-	//make sure request is in 30s
-	if time.Now().Unix() > timeStamp+30 {
-		logger.Error("delete file request past due")
-		resp.ErrorResp(ctx, resp.ErrInternalError)
-		return
-	}
-
-	timeStampStr := strconv.FormatInt(timeStamp, 10)
-	pass := security.ValidateSignature(timeStampStr, msg.Sign)
+	pass := security.CheckRequestLegal(msg.TimeStamp, msg.MachineMac, msg.Sign)
 	if pass == false {
-		logger.Error("ValidateSignature fail")
 		resp.ErrorResp(ctx, resp.ErrInternalError)
 		return
 	}
@@ -178,18 +163,8 @@ func pauseHandler(ctx *gin.Context) {
 	}
 
 	//check sign
-	timeStamp := msg.TimeStamp
-	//make sure request is in 30s
-	if time.Now().Unix() > timeStamp+30 {
-		logger.Error("save file request past due")
-		resp.ErrorResp(ctx, resp.ErrInternalError)
-		return
-	}
-
-	timeStampStr := strconv.FormatInt(timeStamp, 10)
-	pass := security.ValidateSignature(timeStampStr, msg.Sign)
+	pass := security.CheckRequestLegal(msg.TimeStamp, msg.MachineMac, msg.Sign)
 	if pass == false {
-		logger.Error("ValidateSignature fail")
 		resp.ErrorResp(ctx, resp.ErrInternalError)
 		return
 	}
@@ -201,4 +176,38 @@ func pauseHandler(ctx *gin.Context) {
 
 	global.PauseMoment = time.Now().Unix() + int64(pauseTime)
 	resp.SuccessResp(ctx, nil)
+}
+
+func fileRequestLogHandler(ctx *gin.Context) {
+	logFiles := []byte{}
+	rd, err := ioutil.ReadDir("./requestRecordlog")
+	if err != nil {
+		logger.Error("read ./requestRecordlog fail", "err", err, "dir", "./requestRecordlog/")
+		resp.ErrorResp(ctx, resp.ErrInternalError)
+		return
+	}
+	for _, fi := range rd {
+		if !fi.IsDir() {
+			name := "<a href=" + "/api/log/requestRecordlog/" + fi.Name() + ">" + "requestRecordlog/" + fi.Name() + "</a><br/>"
+			logFiles = append(logFiles, []byte(name)...)
+		}
+	}
+	ctx.Data(http.StatusOK, "text/html; charset=utf-8", logFiles)
+}
+
+func fileDefaultLogHandler(ctx *gin.Context) {
+	logFiles := []byte{}
+	rd, err := ioutil.ReadDir("./log")
+	if err != nil {
+		logger.Error("read ./log fail", "err", err, "dir", "./log/")
+		resp.ErrorResp(ctx, resp.ErrInternalError)
+		return
+	}
+	for _, fi := range rd {
+		if !fi.IsDir() {
+			name := "<a href=" + "/api/log/log/" + fi.Name() + ">" + "log/" + fi.Name() + "</a><br/>"
+			logFiles = append(logFiles, []byte(name)...)
+		}
+	}
+	ctx.Data(http.StatusOK, "text/html; charset=utf-8", logFiles)
 }

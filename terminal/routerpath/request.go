@@ -22,17 +22,19 @@ func init() {
 	}
 
 	if logger.BaseLogger == nil {
-		terminallogger.InitLogger()
+		terminallogger.InitDefaultLogger()
 	}
 	gin.DefaultWriter = logger.BaseLogger.Out
 
 	//outer request gin
 	defaultGin := ginrouter.New(DefaultGin)
+
 	//send panic to server
 	defaultGin.GinInstance.Use(panichandler.Recover)
+
 	defaultGin.EnableDefaultCors()
 	//http://bindname.coldcdn.com/xxxxxxxxx
-	defaultGin.GinInstance.Any("/*action", requestHandler)
+	defaultGin.GinInstance.Any("/*action", terminallogger.FileRequestLoggerMiddleware(), requestHandler)
 	//http://bindname-terminaltag.shoppynext.com/xxxxxxxxx
 	defaultGin.GinInstance.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedExtensions([]string{".bin"})))
 
@@ -43,19 +45,30 @@ func init() {
 }
 
 var HandlerMap = map[string]func(ctx *gin.Context){
-	"POST /api/v1/file/save":   saveNewFileHandler,
-	"POST /api/v1/file/delete": deleteFileHandler,
-	"POST /api/v1/file/pause":  pauseHandler,
-	"GET /api/testapi/test":    testHandler,
-	"GET /api/testapi/health":  healthHandler,
+	"POST /api/v1/file/save":     saveNewFileHandler,
+	"POST /api/v1/file/delete":   deleteFileHandler,
+	"POST /api/v1/file/pause":    pauseHandler,
+	"GET /api/testapi/test":      testHandler,
+	"GET /api/testapi/health":    healthHandler,
+	"GET /api/v1/filerequestlog": fileRequestLogHandler,
+	"GET /api/v1/defaultlog":     fileDefaultLogHandler,
 }
 
 func requestHandler(ctx *gin.Context) {
-	hostName := strings.Split(ctx.Request.Host, ".")[0]
-	hostInfo := strings.Split(hostName, "-")
-	bindName := hostInfo[0]
-	path := ctx.Request.URL.String()
+	bindName := ""
+	bindNameInfo, exist := ctx.Get("bindName")
+	if exist == true {
+		str, ok := bindNameInfo.(string)
+		if ok {
+			bindName = str
+		}
+	} else {
+		hostName := strings.Split(ctx.Request.Host, ".")[0]
+		hostInfo := strings.Split(hostName, "-")
+		bindName = hostInfo[0]
+	}
 
+	path := ctx.Request.URL.String()
 	method := ctx.Request.Method
 	// not GET or HEAD
 	//if bindName!="0" && (method != "GET" && method != "HEAD") {
@@ -85,6 +98,16 @@ func requestHandler(ctx *gin.Context) {
 	if strings.Contains(path, "/api/static/files/") {
 		path := ctx.Request.URL.Path
 		requestFile := strings.Replace(path, "/api/static/", "", 1)
+		ctx.File("./" + requestFile)
+		return
+	}
+
+	//request log
+	//if speedTester request file
+	// https://0-tagxxxxxx.shoppynext.com:19091/api/log/requestRecordlog/xxxx.log
+	if strings.Contains(path, "/api/log/") {
+		path := ctx.Request.URL.Path
+		requestFile := strings.Replace(path, "/api/log/", "", 1)
 		ctx.File("./" + requestFile)
 		return
 	}

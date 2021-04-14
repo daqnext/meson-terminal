@@ -19,6 +19,7 @@ import (
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/net"
 	"runtime"
 	"time"
 )
@@ -32,11 +33,43 @@ var ConsecutiveFailures = 0
 var cpuUsageArray = []float64{}
 var cpuUsageSum = float64(0)
 
+var netBytesRecv uint64 = 0
+var netBytesSent uint64 = 0
+
+func LoopJob() {
+	CalAverageNetSpeed()
+	CalCpuAverageUsage()
+}
+
+func CalAverageNetSpeed() {
+	go func() {
+		for true {
+			if n, err := net.IOCounters(false); err == nil && len(n) > 0 {
+				sent := n[0].BytesSent
+				recv := n[0].BytesRecv
+				if netBytesRecv != 0 && netBytesSent != 0 {
+					//State.NetInRate = (recv - netBytesRecv) / uint64(s.config.statsReportPeriod.Milliseconds()/1000)
+					//State.NetOutRate = (sent - netBytesSent) / uint64(s.config.statsReportPeriod.Milliseconds()/1000)
+					NetInRate := (recv - netBytesRecv) / uint64(5)
+					NetOutRate := (sent - netBytesSent) / uint64(5)
+					State.NetInMbs = float64(NetInRate*8) / float64(1e6)
+					State.NetOutMbs = float64(NetOutRate*8) / float64(1e6)
+					//fmt.Println(State.NetInMbs,"Mbs")
+					//fmt.Println(State.NetOutMbs,"Mbs")
+				}
+				netBytesRecv = recv
+				netBytesSent = sent
+			}
+			time.Sleep(time.Second * 5)
+		}
+	}()
+}
+
 func CalCpuAverageUsage() {
 	go func() {
 		for true {
 			percent, err := cpu.Percent(time.Second, false)
-			if err != nil {
+			if err != nil || len(percent) <= 0 {
 				logger.Error("failed to get cup usage", "err", err)
 			} else {
 				cpuUsageArray = append(cpuUsageArray, percent[0])

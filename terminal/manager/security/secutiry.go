@@ -9,7 +9,9 @@ import (
 	"encoding/pem"
 	"errors"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
 	"os"
+	"time"
 )
 
 var PublicKey *rsa.PublicKey = nil
@@ -71,5 +73,26 @@ func ValidateSignature(signContent string, sign string) bool {
 		logger.Error("rsa2 public check sign failed.", "err", err)
 		return false
 	}
+	return true
+}
+
+func CheckRequestLegal(timeStamp int64, macAddr string, sign string) bool {
+	//make sure request is in 30s
+	if time.Now().Unix() > timeStamp+30 {
+		logger.Error("request past due")
+		return false
+	}
+
+	if statemgr.State.MacAddr != macAddr {
+		logger.Error("request mac address error")
+		return false
+	}
+
+	pass := ValidateSignature(statemgr.State.MacAddr, sign)
+	if pass == false {
+		logger.Error("ValidateSignature fail")
+		return false
+	}
+
 	return true
 }

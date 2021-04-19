@@ -50,9 +50,9 @@ func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
 		TargetUrl: downloadCmd.DownloadUrl,
 		BindName:  downloadCmd.BindName,
 		FileName:  downloadCmd.FileName,
-		Continent: downloadCmd.Continent,
-		Country:   downloadCmd.Country,
-		Area:      downloadCmd.Area,
+		Continent: downloadCmd.RequestContinent,
+		Country:   downloadCmd.RequestCountry,
+		Area:      downloadCmd.RequestArea,
 		SavePath:  savePath,
 		//CacheTime: downloadCmd.CacheTime,
 	}
@@ -77,11 +77,11 @@ func OnDownloadSuccess(task *downloadtaskmgr.DownloadTask) {
 
 	//post download finish msg to server
 	payload := commonmsg.TerminalDownloadFinishMsg{
-		FileNameHash: task.FileName,
-		BindNameHash: task.BindName,
-		Continent:    task.Continent,
-		Country:      task.Country,
-		Area:         task.Area,
+		FileNameHash:     task.FileName,
+		BindNameHash:     task.BindName,
+		RequestContinent: task.Continent,
+		RequestCountry:   task.Country,
+		RequestArea:      task.Area,
 	}
 	header := map[string]string{
 		"Content-Type":  "application/json",
@@ -98,11 +98,13 @@ func OnDownloadFailed(task *downloadtaskmgr.DownloadTask) {
 
 	//post failed msg to server
 	payload := commonmsg.TerminalDownloadFailedMsg{
-		FileNameHash: task.FileName,
-		BindNameHash: task.BindName,
-		Continent:    task.Continent,
-		Country:      task.Country,
-		Area:         task.Area,
+		FileNameHash:     task.FileName,
+		BindNameHash:     task.BindName,
+		RequestContinent: task.Continent,
+		RequestCountry:   task.Country,
+		RequestArea:      task.Area,
+		DownloadUrl:      task.TargetUrl,
+		FileSize:         uint64(task.FileSize),
 	}
 	header := map[string]string{
 		"Content-Type":  "application/json",

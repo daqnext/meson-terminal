@@ -62,6 +62,7 @@ func main() {
 
 	//waiting for confirm msg
 	go func() {
+		defer panichandler.CatchPanicStack()
 		select {
 		case flag := <-account.ServerRequestTest:
 			if flag == true {
@@ -95,7 +96,7 @@ func main() {
 			if port > 65535 {
 				port = 19080
 			}
-			global.ApiPort = strconv.Itoa(port)
+			global.HealthCheckPort = strconv.Itoa(port)
 			httpAddr := fmt.Sprintf(":%d", port)
 			testGinServer := ginrouter.GetGinInstance(routerpath.CheckStartGin)
 			err := httpserver.StartHttpServer(httpAddr, testGinServer.GinInstance)
@@ -135,7 +136,7 @@ func CheckGinStart(onStart func()) {
 			header := map[string]string{
 				"Content-Type": "application/json",
 			}
-			url := fmt.Sprintf("http://127.0.0.1:%s/api/testapi/health", global.ApiPort)
+			url := fmt.Sprintf("http://127.0.0.1:%s/api/testapi/health", global.HealthCheckPort)
 			_, err := httputils.Request("GET", url, nil, header)
 			if err != nil {
 				logger.Debug("health check error", "err", err)

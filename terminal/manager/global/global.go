@@ -1,7 +1,12 @@
 package global
 
-const FileDirPath = "./files"
-const SpaceHolderDir = "./spaceholder"
+import (
+	"github.com/daqnext/meson-common/common/runpath"
+	"path/filepath"
+)
+
+var FileDirPath = filepath.Join(runpath.RunPath, "./files")
+var SpaceHolderDir = filepath.Join(runpath.RunPath, "./spaceholder")
 
 var ReportDownloadFinishUrl = "/api/v1/s/terminal/downloadfinish"
 var ReportDownloadFailedUrl = "/api/v1/s/terminal/downloadfailed"

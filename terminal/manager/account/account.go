@@ -52,7 +52,7 @@ func TerminalLogin(url string, token string) {
 	case 0:
 		Token = respBody.Data.(string)
 		logger.Debug("login success! ", "token", Token)
-		logger.Info("login success! Terminal start...")
+		logger.Info("login success!")
 		accountmgr.Token = Token
 		space := strconv.Itoa(config.UsingSpaceLimit)
 		//config.RecordUserInputConfigToFile(Token, config.UsingPort, space)

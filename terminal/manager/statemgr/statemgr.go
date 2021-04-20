@@ -15,11 +15,11 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/daqnext/meson-terminal/terminal/manager/versionmgr"
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/disk"
-	"github.com/shirou/gopsutil/host"
-	"github.com/shirou/gopsutil/mem"
-	"github.com/shirou/gopsutil/net"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/host"
+	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/shirou/gopsutil/v3/net"
 	"runtime"
 	"time"
 )
@@ -70,7 +70,7 @@ func CalCpuAverageUsage() {
 		for true {
 			percent, err := cpu.Percent(time.Second, false)
 			if err != nil || len(percent) <= 0 {
-				logger.Error("failed to get cup usage", "err", err)
+				logger.Debug("failed to get cup usage", "err", err)
 			} else {
 				cpuUsageArray = append(cpuUsageArray, percent[0])
 				cpuUsageSum += percent[0]
@@ -145,10 +145,10 @@ func GetMachineState() *commonmsg.TerminalStatesMsg {
 func GetMachineSetupTime() string {
 	switch runtime.GOOS {
 	case "linux":
-		result, err := utils.RunCommand("ls", "-lact --full-time /etc | tail -1 |awk '{print $6,$7}'")
+		result, err := utils.RunCommand("ls", "-lact", "--full-time", "/etc | tail -1 |awk '{print $6,$7}'")
 		if err != nil {
-			logger.Debug("aws ec2 describe-addresses err", "err", err)
-			return ""
+			logger.Debug("aws ec2 run command err", "err", err)
+			return "unknown"
 		}
 		return result
 	case "windows":
@@ -189,9 +189,9 @@ func SendStateToServer() {
 		return
 	}
 
+	ConsecutiveFailures = 0
 	switch respBody.Status {
 	case 0:
-		ConsecutiveFailures = 0
 		//logger.Debug("send State success")
 	case 101: //auth error
 		logger.Error("auth error,please restart terminal with correct username and password")

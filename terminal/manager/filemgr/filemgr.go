@@ -15,7 +15,7 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
-	"github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/v3/disk"
 	"io/ioutil"
 	"os"
 	"sync"
@@ -30,8 +30,8 @@ var HoldFileSize = int64(0)
 var LeftSpace = int64(0)
 
 const UnitK = 1 << 10
-const UnitM = 1 << 10 * 1 << 10
-const UnitG = 1 << 10 * 1 << 10 * 1 << 10
+const UnitM = 1 << 20
+const UnitG = 1 << 30
 
 const eachHoldFileSize = 100 * UnitM
 const headSpace = 200 * UnitM

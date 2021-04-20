@@ -7,6 +7,7 @@ import (
 	"github.com/daqnext/meson-common/common/downloadtaskmgr"
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-common/common/runpath"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
@@ -16,6 +17,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -40,8 +42,9 @@ func DownloadFile(url string, savePath string) error {
 
 func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
 	dir := global.FileDirPath + "/" + downloadCmd.BindName
+	dir = filepath.Join(runpath.RunPath, dir)
 	if !utils.Exists(dir) {
-		os.Mkdir(dir, 0777)
+		os.MkdirAll(dir, 0777)
 	}
 	fileName := utils.FileAddMark(downloadCmd.FileName, common.RedirectMark)
 	savePath := dir + "/" + fileName

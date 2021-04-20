@@ -1,7 +1,6 @@
 package domainmgr
 
 import (
-	"fmt"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
@@ -22,13 +21,13 @@ func init() {
 		k = k[3:18]
 		k = reverseString(k)
 		k = "http://" + k + ".com:9090"
-		fmt.Println(k)
+		//fmt.Println(k)
 
 		backupDomain[k] = 1
 	}
 	backupDomain[UsingDomain] = 1
 
-	fmt.Println(backupDomain)
+	//fmt.Println(backupDomain)
 }
 func reverseString(s string) string {
 	runes := []rune(s)
@@ -75,7 +74,6 @@ func CheckAvailableDomain() {
 		}
 	}
 
-	logger.Error("Server Domain not available")
 	logger.Error("Please check network environment or download new version Terminal in https://meson.network")
 }
 

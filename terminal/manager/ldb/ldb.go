@@ -3,9 +3,11 @@ package ldb
 import (
 	"encoding/binary"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-common/common/runpath"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/syndtr/goleveldb/leveldb"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -13,8 +15,8 @@ import (
 
 //var db *leveldb.DB
 
-const LDBPath = "./ldb"
-const LDBFile = "./ldb/index"
+var LDBPath = filepath.Join(runpath.RunPath, "./ldb")
+var LDBFile = filepath.Join(runpath.RunPath, "./ldb/index")
 
 const AccessTimePrefix = "AccessTime-"
 const TempTransferPrefix = "TempTransfer-"

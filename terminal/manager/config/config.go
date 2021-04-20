@@ -5,9 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-common/common/runpath"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -140,7 +142,7 @@ func RecordConfigToFile(configs map[string]string) error {
 
 	of, err := os.Open(ConfigPath)
 	if err != nil {
-		logger.Error("open file record token and port error", "err")
+		logger.Error("open file record token and port error", "err", err)
 		return err
 	}
 	defer func() {
@@ -426,12 +428,13 @@ func ReadFlag() {
 	flag.StringVar(&token, Token, "", "token register and login in https://meson.network")
 	flag.StringVar(&port, Port, "", "server port")
 	flag.IntVar(&spacelimit, SpaceLimit, 0, "cdu space use limit")
-	flag.StringVar(&serverdomain, ServerDomain, "", "server domain")
+	flag.StringVar(&serverdomain, ServerDomain, "http://coldcdn.com", "server domain")
 	//flag.Parse()
 }
 
 func ReadConfigFile() {
-	flag.StringVar(&ConfigPath, "config", "./config.txt", "path to config file")
+	configPath := filepath.Join(runpath.RunPath, "./config.txt")
+	flag.StringVar(&ConfigPath, "config", configPath, "path to config file")
 	flag.Parse()
 	if len(ConfigPath) == 0 {
 		log.Fatalln("failed to find config file, please provide config file!")

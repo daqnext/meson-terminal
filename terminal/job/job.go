@@ -32,7 +32,7 @@ func StartScheduleJob() {
 	if err != nil {
 		logger.Error("ScheduleJob-"+"SendStateToServer"+" start error", "err", err)
 	} else {
-		logger.Info("ScheduleJob-"+"SendStateToServer"+" start", "ID", jobId, "Schedule", schedule)
+		logger.Debug("ScheduleJob-"+"SendStateToServer"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
 	//version check
@@ -42,7 +42,7 @@ func StartScheduleJob() {
 	if err != nil {
 		logger.Error("ScheduleJob-"+"VersionCheck"+" start error", "err", err)
 	} else {
-		logger.Info("ScheduleJob-"+"VersionCheck"+" start", "ID", jobId, "Schedule", schedule)
+		logger.Debug("ScheduleJob-"+"VersionCheck"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
 	//sync folder size
@@ -50,7 +50,7 @@ func StartScheduleJob() {
 	if err != nil {
 		logger.Error("ScheduleJob-"+"SyncCdnDirSize"+" start error", "err", err)
 	} else {
-		logger.Info("ScheduleJob-"+"SyncCdnDirSize"+" start", "ID", jobId, "Schedule", "0 0 * * * *")
+		logger.Debug("ScheduleJob-"+"SyncCdnDirSize"+" start", "ID", jobId, "Schedule", "0 0 * * * *")
 	}
 
 	//scan expiration files  every 6 hours
@@ -60,7 +60,7 @@ func StartScheduleJob() {
 	if err != nil {
 		logger.Error("ScheduleJob-"+"ScanExpirationFiles"+" start error", "err", err)
 	} else {
-		logger.Info("ScheduleJob-"+"ScanExpirationFiles"+" start", "ID", jobId, "Schedule", schedule)
+		logger.Debug("ScheduleJob-"+"ScanExpirationFiles"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
 	//delete empty folder 1time/hour
@@ -69,7 +69,7 @@ func StartScheduleJob() {
 	if err != nil {
 		logger.Error("ScheduleJob-"+"DeleteEmptyFolder"+" start error", "err", err)
 	} else {
-		logger.Info("ScheduleJob-"+"DeleteEmptyFolder"+" start", "ID", jobId, "Schedule", schedule)
+		logger.Debug("ScheduleJob-"+"DeleteEmptyFolder"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
 	//delete logger file 1time/day
@@ -78,7 +78,7 @@ func StartScheduleJob() {
 	if err != nil {
 		logger.Error("ScheduleJob-"+"DeleteTimeoutLog"+" start error", "err", err)
 	} else {
-		logger.Info("ScheduleJob-"+"DeleteTimeoutLog"+" start", "ID", jobId, "Schedule", schedule)
+		logger.Debug("ScheduleJob-"+"DeleteTimeoutLog"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
 	c.Start()

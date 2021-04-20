@@ -3,11 +3,13 @@ package routerpath
 import (
 	"github.com/daqnext/meson-common/common/ginrouter"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-common/common/runpath"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
+	"path/filepath"
 	"strings"
 )
 
@@ -98,7 +100,8 @@ func requestHandler(ctx *gin.Context) {
 	if strings.Contains(path, "/api/static/files/") {
 		path := ctx.Request.URL.Path
 		requestFile := strings.Replace(path, "/api/static/", "", 1)
-		ctx.File("./" + requestFile)
+		filePath := filepath.Join(runpath.RunPath, requestFile)
+		ctx.File(filePath)
 		return
 	}
 
@@ -108,7 +111,8 @@ func requestHandler(ctx *gin.Context) {
 	if strings.Contains(path, "/api/log/") {
 		path := ctx.Request.URL.Path
 		requestFile := strings.Replace(path, "/api/log/", "", 1)
-		ctx.File("./" + requestFile)
+		logPath := filepath.Join(runpath.RunPath, requestFile)
+		ctx.File(logPath)
 		return
 	}
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/daqnext/meson-common/common/accountmgr"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-common/common/runpath"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
@@ -13,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -26,7 +28,11 @@ func init() {
 func InitDefaultLogger() {
 	log := logrus.New()
 
-	fileWriter := logger.LogFileWriter{}
+	recordPath := filepath.Join(runpath.RunPath, "./daily")
+	fmt.Println("Default log folder ", "path:", recordPath+"log")
+	fileWriter := logger.LogFileWriter{
+		RootDir: recordPath,
+	}
 	log.SetOutput(io.MultiWriter(&fileWriter, os.Stdout))
 
 	log.SetFormatter(&logrus.TextFormatter{
@@ -47,8 +53,10 @@ func InitDefaultLogger() {
 func InitFileRequestLogger() {
 	log := logrus.New()
 
+	recordPath := filepath.Join(runpath.RunPath, "requestRecord")
+	fmt.Println("FileRequest log folder ", "path:", recordPath+"log")
 	fileWriter := logger.LogFileWriter{
-		RootDir:         "./requestRecord",
+		RootDir:         recordPath,
 		OnLogFileChange: UploadFileRequestLog,
 		MaxSize:         1024 * 3, //only for test
 	}
@@ -161,7 +169,7 @@ func FileRequestLoggerMiddleware() gin.HandlerFunc {
 func DeleteTimeoutLog() {
 	defer panichandler.CatchPanicStack()
 
-	logger.DeleteLog("./log", 7*24*3600)
+	logger.DeleteLog("./dailylog", 7*24*3600)
 	logger.DeleteLog("./requestRecordlog", 7*24*3600)
 }
 

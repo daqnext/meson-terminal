@@ -8,6 +8,7 @@ import (
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/resp"
+	"github.com/daqnext/meson-common/common/runpath"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/account"
 	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
@@ -20,6 +21,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -180,7 +182,8 @@ func pauseHandler(ctx *gin.Context) {
 
 func fileRequestLogHandler(ctx *gin.Context) {
 	logFiles := []byte{}
-	rd, err := ioutil.ReadDir("./requestRecordlog")
+	path := filepath.Join(runpath.RunPath, "./requestRecordlog")
+	rd, err := ioutil.ReadDir(path)
 	if err != nil {
 		logger.Error("read ./requestRecordlog fail", "err", err, "dir", "./requestRecordlog/")
 		resp.ErrorResp(ctx, resp.ErrInternalError)
@@ -197,7 +200,8 @@ func fileRequestLogHandler(ctx *gin.Context) {
 
 func fileDefaultLogHandler(ctx *gin.Context) {
 	logFiles := []byte{}
-	rd, err := ioutil.ReadDir("./log")
+	path := filepath.Join(runpath.RunPath, "./dailylog")
+	rd, err := ioutil.ReadDir(path)
 	if err != nil {
 		logger.Error("read ./log fail", "err", err, "dir", "./log/")
 		resp.ErrorResp(ctx, resp.ErrInternalError)
@@ -205,7 +209,7 @@ func fileDefaultLogHandler(ctx *gin.Context) {
 	}
 	for _, fi := range rd {
 		if !fi.IsDir() {
-			name := "<a href=" + "/api/log/log/" + fi.Name() + ">" + "log/" + fi.Name() + "</a><br/>"
+			name := "<a href=" + "/api/log/dailylog/" + fi.Name() + ">" + "log/" + fi.Name() + "</a><br/>"
 			logFiles = append(logFiles, []byte(name)...)
 		}
 	}

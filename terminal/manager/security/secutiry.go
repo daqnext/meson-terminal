@@ -76,7 +76,7 @@ func ValidateSignature(signContent string, sign string) bool {
 	return true
 }
 
-func CheckRequestLegal(timeStamp int64, macAddr string, sign string) bool {
+func CheckRequestLegal(timeStamp int64, macAddr string, macSign string) bool {
 	//make sure request is in 30s
 	if time.Now().Unix() > timeStamp+30 {
 		logger.Error("request past due")
@@ -88,9 +88,9 @@ func CheckRequestLegal(timeStamp int64, macAddr string, sign string) bool {
 		return false
 	}
 
-	pass := ValidateSignature(statemgr.State.MacAddr, sign)
+	pass := ValidateSignature(statemgr.State.MacAddr, macSign)
 	if pass == false {
-		logger.Error("ValidateSignature fail")
+		logger.Error("ValidateSignature MacAddr fail")
 		return false
 	}
 

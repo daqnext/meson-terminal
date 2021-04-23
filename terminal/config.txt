@@ -10,7 +10,7 @@ port =
 spacelimit = 
 
 #server address e.x. http://127.0.0.1:9090 #include port
-serverdomain =
+serverdomain = http://coldcdn.com
 
 
 #runMode local/server

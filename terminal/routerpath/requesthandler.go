@@ -109,7 +109,7 @@ func saveNewFileHandler(ctx *gin.Context) {
 	}
 
 	//check sign
-	pass := security.CheckRequestLegal(downloadCmd.TimeStamp, downloadCmd.MachineMac, downloadCmd.Sign)
+	pass := security.CheckRequestLegal(downloadCmd.TimeStamp, downloadCmd.MachineMac, downloadCmd.MacSign)
 	if pass == false {
 		resp.ErrorResp(ctx, resp.ErrInternalError)
 		return
@@ -121,7 +121,11 @@ func saveNewFileHandler(ctx *gin.Context) {
 	if fileSize == 0 {
 		fileSize = 1 * filemgr.UnitG
 	}
-	filemgr.GenDiskSpace(int64(fileSize))
+	result := filemgr.GenDiskSpace(int64(fileSize))
+	if result == false {
+		resp.ErrorResp(ctx, resp.ErrNoSpace)
+		return
+	}
 
 	//就加入新的下载任务
 	err := downloader.AddToDownloadQueue(downloadCmd)
@@ -141,7 +145,7 @@ func deleteFileHandler(ctx *gin.Context) {
 	}
 
 	//check sign
-	pass := security.CheckRequestLegal(msg.TimeStamp, msg.MachineMac, msg.Sign)
+	pass := security.CheckRequestLegal(msg.TimeStamp, msg.MachineMac, msg.MacSign)
 	if pass == false {
 		resp.ErrorResp(ctx, resp.ErrInternalError)
 		return
@@ -165,7 +169,7 @@ func pauseHandler(ctx *gin.Context) {
 	}
 
 	//check sign
-	pass := security.CheckRequestLegal(msg.TimeStamp, msg.MachineMac, msg.Sign)
+	pass := security.CheckRequestLegal(msg.TimeStamp, msg.MachineMac, msg.MacSign)
 	if pass == false {
 		resp.ErrorResp(ctx, resp.ErrInternalError)
 		return

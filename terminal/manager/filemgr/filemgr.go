@@ -312,19 +312,33 @@ func DeleteFile(bindName string, fileName string) error {
 	return nil
 }
 
-func GenDiskSpace(fileSize int64) {
+func GenDiskSpace(fileSize int64) bool {
 	lock.Lock()
+	defer lock.Unlock()
 	for LeftSpace <= fileSize+headSpace {
 		holdFileCount := len(SpaceHoldFiles)
+		if holdFileCount <= 0 {
+			logger.Error("space not enough")
+			return false
+		}
 		fileName := global.SpaceHolderDir + fmt.Sprintf("/%010d.bin", holdFileCount)
 		if utils.Exists(fileName) {
-			err := os.Remove(fileName)
+			fileStat, err := os.Stat(fileName)
+			size := int64(0)
 			if err != nil {
-				logger.Error("delete space hold file error", "err", err)
+				logger.Error("GenDiskSpace get file stat error", "err", err)
+			} else {
+				size = fileStat.Size()
 			}
-			SpaceHoldFiles = SpaceHoldFiles[:holdFileCount-1]
-			LeftSpace += eachHoldFileSize
+
+			err = os.Remove(fileName)
+			if err != nil {
+				logger.Error("GenDiskSpace delete space hold file error", "err", err)
+			} else {
+				LeftSpace += size
+			}
 		}
+		SpaceHoldFiles = SpaceHoldFiles[:holdFileCount-1]
 	}
-	lock.Unlock()
+	return true
 }

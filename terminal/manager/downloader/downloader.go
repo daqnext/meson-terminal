@@ -7,7 +7,6 @@ import (
 	"github.com/daqnext/meson-common/common/downloadtaskmgr"
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
-	"github.com/daqnext/meson-common/common/runpath"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
@@ -17,7 +16,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -42,7 +40,7 @@ func DownloadFile(url string, savePath string) error {
 
 func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
 	dir := global.FileDirPath + "/" + downloadCmd.BindName
-	dir = filepath.Join(runpath.RunPath, dir)
+	//dir = filepath.Join(runpath.RunPath, dir)
 	if !utils.Exists(dir) {
 		os.MkdirAll(dir, 0777)
 	}
@@ -50,13 +48,18 @@ func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
 	savePath := dir + "/" + fileName
 
 	info := &downloadtaskmgr.DownloadInfo{
-		TargetUrl: downloadCmd.DownloadUrl,
-		BindName:  downloadCmd.BindName,
-		FileName:  downloadCmd.FileName,
-		Continent: downloadCmd.RequestContinent,
-		Country:   downloadCmd.RequestCountry,
-		Area:      downloadCmd.RequestArea,
-		SavePath:  savePath,
+		OriginTag:    downloadCmd.TransferTag,
+		TargetUrl:    downloadCmd.DownloadUrl,
+		BindName:     downloadCmd.BindName,
+		FileName:     downloadCmd.FileName,
+		Continent:    downloadCmd.RequestContinent,
+		Country:      downloadCmd.RequestCountry,
+		Area:         downloadCmd.RequestArea,
+		SavePath:     savePath,
+		DownloadType: downloadCmd.DownloadType,
+		OriginRegion: downloadCmd.OriginRegion,
+		TargetRegion: downloadCmd.TargetRegion,
+
 		//CacheTime: downloadCmd.CacheTime,
 	}
 
@@ -80,11 +83,16 @@ func OnDownloadSuccess(task *downloadtaskmgr.DownloadTask) {
 
 	//post download finish msg to server
 	payload := commonmsg.TerminalDownloadFinishMsg{
-		FileNameHash:     task.FileName,
-		BindNameHash:     task.BindName,
+		FileName:         task.FileName,
+		BindName:         task.BindName,
 		RequestContinent: task.Continent,
 		RequestCountry:   task.Country,
 		RequestArea:      task.Area,
+		DownloadType:     task.DownloadType,
+		OriginRegion:     task.OriginRegion,
+		TargetRegion:     task.TargetRegion,
+		DownloadUrl:      task.TargetUrl,
+		FileSize:         uint64(fileInfo.Size()),
 	}
 	header := map[string]string{
 		"Content-Type":  "application/json",
@@ -101,11 +109,14 @@ func OnDownloadFailed(task *downloadtaskmgr.DownloadTask) {
 
 	//post failed msg to server
 	payload := commonmsg.TerminalDownloadFailedMsg{
-		FileNameHash:     task.FileName,
-		BindNameHash:     task.BindName,
+		FileName:         task.FileName,
+		BindName:         task.BindName,
 		RequestContinent: task.Continent,
 		RequestCountry:   task.Country,
 		RequestArea:      task.Area,
+		DownloadType:     task.DownloadType,
+		OriginRegion:     task.OriginRegion,
+		TargetRegion:     task.TargetRegion,
 		DownloadUrl:      task.TargetUrl,
 		FileSize:         uint64(task.FileSize),
 	}

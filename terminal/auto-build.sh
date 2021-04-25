@@ -1,7 +1,7 @@
 #!/bin/sh
 # Copyright 2020 Daqnext Foundation Ltd.
 
-VERSION="v2.0.2"
+VERSION="v2.1.0"
 COPY_FILES=("config.txt" "host_key.key" "host_chain.crt" "meson_PublicKey.pem")
 
 generate_tar() {

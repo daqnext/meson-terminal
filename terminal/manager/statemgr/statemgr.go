@@ -33,8 +33,11 @@ var ConsecutiveFailures = 0
 var cpuUsageArray = []float64{}
 var cpuUsageSum = float64(0)
 
-var netBytesRecv uint64 = 0
-var netBytesSent uint64 = 0
+//var netBytesRecv uint64 = 0
+//var netBytesSent uint64 = 0
+
+var netBytesRecv = []uint64{0, 0, 0, 0, 0}
+var netBytesSent = []uint64{0, 0, 0, 0, 0}
 
 func LoopJob() {
 	CalAverageNetSpeed()
@@ -45,20 +48,25 @@ func CalAverageNetSpeed() {
 	go func() {
 		for true {
 			if n, err := net.IOCounters(false); err == nil && len(n) > 0 {
-				sent := n[0].BytesSent
-				recv := n[0].BytesRecv
-				if netBytesRecv != 0 && netBytesSent != 0 {
-					//State.NetInRate = (recv - netBytesRecv) / uint64(s.config.statsReportPeriod.Milliseconds()/1000)
-					//State.NetOutRate = (sent - netBytesSent) / uint64(s.config.statsReportPeriod.Milliseconds()/1000)
-					NetInRate := (recv - netBytesRecv) / uint64(5)
-					NetOutRate := (sent - netBytesSent) / uint64(5)
-					State.NetInMbs = float64(NetInRate*8) / float64(1e6)
-					State.NetOutMbs = float64(NetOutRate*8) / float64(1e6)
-					//fmt.Println(State.NetInMbs,"Mbs")
-					//fmt.Println(State.NetOutMbs,"Mbs")
+				for i, _ := range n {
+					if i >= 5 {
+						break
+					}
+					sent := n[i].BytesSent
+					recv := n[i].BytesRecv
+					if netBytesRecv[i] != 0 && netBytesSent[i] != 0 {
+						//State.NetInRate = (recv - netBytesRecv) / uint64(s.config.statsReportPeriod.Milliseconds()/1000)
+						//State.NetOutRate = (sent - netBytesSent) / uint64(s.config.statsReportPeriod.Milliseconds()/1000)
+						NetInRate := (recv - netBytesRecv[i]) / uint64(5)
+						NetOutRate := (sent - netBytesSent[i]) / uint64(5)
+						State.NetInMbs[i] = float64(NetInRate*8) / float64(1e6)
+						State.NetOutMbs[i] = float64(NetOutRate*8) / float64(1e6)
+						//fmt.Println(State.NetInMbs,"Mbs")
+						//fmt.Println(State.NetOutMbs,"Mbs")
+					}
+					netBytesRecv[i] = recv
+					netBytesSent[i] = sent
 				}
-				netBytesRecv = recv
-				netBytesSent = sent
 			}
 			time.Sleep(time.Second * 5)
 		}

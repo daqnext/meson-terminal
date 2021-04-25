@@ -29,7 +29,7 @@ func InitDefaultLogger() {
 	log := logrus.New()
 
 	recordPath := filepath.Join(runpath.RunPath, "./daily")
-	fmt.Println("Default log folder ", "path:", recordPath+"log")
+	//fmt.Println("Default log folder ", "path:", recordPath+"log")
 	fileWriter := logger.LogFileWriter{
 		RootDir: recordPath,
 	}
@@ -54,7 +54,7 @@ func InitFileRequestLogger() {
 	log := logrus.New()
 
 	recordPath := filepath.Join(runpath.RunPath, "requestRecord")
-	fmt.Println("FileRequest log folder ", "path:", recordPath+"log")
+	//fmt.Println("FileRequest log folder ", "path:", recordPath+"log")
 	fileWriter := logger.LogFileWriter{
 		RootDir:         recordPath,
 		OnLogFileChange: UploadFileRequestLog,

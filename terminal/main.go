@@ -3,23 +3,22 @@ package main
 import (
 	"fmt"
 	"github.com/daqnext/meson-common/common"
-	"github.com/daqnext/meson-common/common/downloadtaskmgr"
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-terminal/terminal/job"
 	"github.com/daqnext/meson-terminal/terminal/manager/account"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/httpserver"
+	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/daqnext/meson-terminal/terminal/manager/security"
 	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
 	"github.com/daqnext/meson-terminal/terminal/manager/versionmgr"
 	"github.com/daqnext/meson-terminal/terminal/routerpath"
 	"github.com/gin-gonic/gin"
-	"github.com/robfig/cron/v3"
-	"math/rand"
 	"strconv"
 	"time"
 
@@ -37,7 +36,7 @@ func main() {
 
 	//download publickey
 	url := "https://assets.meson.network:10443/static/terminal/publickey/meson_PublicKey.pem"
-	err := downloadtaskmgr.DownLoadFile(url, security.KeyPath)
+	err := downloader.DownloadFile(url, security.KeyPath)
 	if err != nil {
 		logger.Error("download publicKey url="+url+"error", "err", err)
 	}
@@ -46,10 +45,15 @@ func main() {
 	filemgr.Init()
 
 	//publicKey
-	security.InitPublicKey(security.KeyPath)
+	err = security.InitPublicKey(security.KeyPath)
+	if err != nil {
+		logger.Fatal("InitPublicKey error, try to download key by manual", "err", err)
+	}
 
 	//login
 	account.TerminalLogin(global.TerminalLoginUrl, config.UsingToken)
+
+	defer panichandler.CatchPanicStack()
 
 	//waiting for confirm msg
 	go func() {
@@ -79,7 +83,7 @@ func main() {
 		logger.Info("Terminal Is Running on Port:" + config.UsingPort)
 		statemgr.SendStateToServer()
 		//start schedule job- upload terminal state
-		startScheduleJob()
+		job.StartScheduleJob()
 	})
 
 	//start http api for server
@@ -101,7 +105,6 @@ func main() {
 	}()
 
 	//start https api server
-	//looking for ssl files
 	crtFileName := "./host_chain.crt"
 	keyFileName := "./host_key.key"
 	httpsAddr := fmt.Sprintf(":%s", config.UsingPort)
@@ -115,6 +118,7 @@ func main() {
 
 func CheckGinStart(onStart func()) {
 	go func() {
+		defer panichandler.CatchPanicStack()
 		for true {
 			time.Sleep(time.Second)
 			header := map[string]string{
@@ -132,58 +136,4 @@ func CheckGinStart(onStart func()) {
 			break
 		}
 	}()
-}
-
-func startScheduleJob() {
-	c := cron.New(cron.WithSeconds())
-	rand.Seed(time.Now().Unix())
-
-	//heartbeat
-	randSecond := rand.Intn(30)
-	schedule := fmt.Sprintf("%d,%d * * * * *", randSecond, randSecond+30)
-	jobId, err := c.AddFunc(schedule, statemgr.SendStateToServer)
-	if err != nil {
-		logger.Error("ScheduleJob-"+"SendStateToServer"+" start error", "err", err)
-	} else {
-		logger.Info("ScheduleJob-"+"SendStateToServer"+" start", "ID", jobId, "Schedule", schedule)
-	}
-
-	//version check
-	randSecond = rand.Intn(60)
-	schedule = fmt.Sprintf("%d %d * * * *", randSecond, randSecond)
-	jobId, err = c.AddFunc(schedule, versionmgr.CheckVersion)
-	if err != nil {
-		logger.Error("ScheduleJob-"+"VersionCheck"+" start error", "err", err)
-	} else {
-		logger.Info("ScheduleJob-"+"VersionCheck"+" start", "ID", jobId, "Schedule", schedule)
-	}
-
-	//sync folder size
-	jobId, err = c.AddFunc("0 0 * * * *", filemgr.SyncCdnDirSize)
-	if err != nil {
-		logger.Error("ScheduleJob-"+"SyncCdnDirSize"+" start error", "err", err)
-	} else {
-		logger.Info("ScheduleJob-"+"SyncCdnDirSize"+" start", "ID", jobId, "Schedule", "0 0 * * * *")
-	}
-
-	//scan expiration files  every 6 hours
-	schedule = fmt.Sprintf("%d 0 0,6,12,18 * * *", rand.Intn(60))
-	//schedule = fmt.Sprintf("%d * * * * *", rand.Intn(60))
-	jobId, err = c.AddFunc(schedule, filemgr.ScanExpirationFiles)
-	if err != nil {
-		logger.Error("ScheduleJob-"+"ScanExpirationFiles"+" start error", "err", err)
-	} else {
-		logger.Info("ScheduleJob-"+"ScanExpirationFiles"+" start", "ID", jobId, "Schedule", schedule)
-	}
-
-	//delete empty folder 1time/hour
-	schedule = fmt.Sprintf("%d 0 * * * *", rand.Intn(60))
-	jobId, err = c.AddFunc(schedule, filemgr.DeleteEmptyFolder)
-	if err != nil {
-		logger.Error("ScheduleJob-"+"DeleteEmptyFolder"+" start error", "err", err)
-	} else {
-		logger.Info("ScheduleJob-"+"DeleteEmptyFolder"+" start", "ID", jobId, "Schedule", schedule)
-	}
-
-	c.Start()
 }

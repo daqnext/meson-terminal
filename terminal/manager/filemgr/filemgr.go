@@ -13,6 +13,7 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
+	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/syndtr/goleveldb/leveldb"
 	"io/ioutil"
@@ -115,6 +116,7 @@ func FullSpace() {
 
 	holdFiles, err := ioutil.ReadDir(global.SpaceHolderDir)
 	if err != nil {
+		lock.Unlock()
 		logger.Error("read space holder dir error", "err", err)
 		return
 	}
@@ -190,6 +192,7 @@ func SyncHoldFileDirSize() {
 }
 
 func SyncCdnDirSize() {
+	defer panichandler.CatchPanicStack()
 	size, err := utils.GetDirSize(global.FileDirPath)
 	if err != nil {
 		logger.Error("get dir size error", "err", err)
@@ -198,6 +201,7 @@ func SyncCdnDirSize() {
 }
 
 func ScanExpirationFiles() {
+	defer panichandler.CatchPanicStack()
 	//request expiration time from server
 	logger.Info("Start ScanExpirationFiles")
 	header := map[string]string{
@@ -279,7 +283,7 @@ func ScanExpirationFiles() {
 		//get right request
 		logger.Debug("agree to delete files")
 		//delay 5 minutes delete
-		time.Sleep(5 * time.Minute)
+		time.Sleep(15 * time.Minute)
 
 		batch := new(leveldb.Batch)
 		for _, v := range expirationFils {
@@ -311,6 +315,7 @@ func ScanExpirationFiles() {
 }
 
 func DeleteEmptyFolder() {
+	defer panichandler.CatchPanicStack()
 	utils.DeleteEmptyFolders(global.FileDirPath)
 }
 

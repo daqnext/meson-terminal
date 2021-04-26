@@ -10,6 +10,7 @@ import (
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
+	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -21,6 +22,7 @@ import (
 )
 
 func CheckVersion() {
+	defer panichandler.CatchPanicStack()
 	//check is there new version or not
 	latestVersion, _, err := GetTerminalVersionFromServer()
 	if err != nil {
@@ -52,7 +54,6 @@ func CheckVersion() {
 
 	//restart
 	RestartTerminal()
-
 }
 
 func DownloadNewVersion(fileName string, downloadUrl string, newVersion string) error {

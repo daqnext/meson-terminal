@@ -5,6 +5,7 @@ import (
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
+	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/syndtr/goleveldb/leveldb"
 	"os"
 	"sync"
@@ -29,7 +30,7 @@ func LevelDBInit() {
 	if !utils.Exists(global.LDBPath) {
 		err := os.Mkdir(global.LDBPath, 0700)
 		if err != nil {
-			logger.Fatal("file dir create failed, please create dir " + global.FileDirPath + " by manual")
+			logger.Fatal("file dir create failed, please create dir " + global.LDBPath + " by manual")
 		}
 	}
 }
@@ -43,6 +44,8 @@ func OpenDB() (*leveldb.DB, error) {
 }
 
 func SetAccessTimeStamp(filePath string, timeStamp int64) {
+	defer panichandler.CatchPanicStack()
+
 	b := make([]byte, 8)
 	binary.LittleEndian.PutUint64(b, uint64(timeStamp))
 	DBLock.Lock()

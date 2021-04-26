@@ -18,6 +18,7 @@ var TerminalLoginUrl = ServerDomain + "/api/v1/s/serverreg/terminallogin"
 var RequestFileExpirationTimeUrl = ServerDomain + "/api/v1/s/terminal/expirationtime"
 var RequestToDeleteFilsUrl = ServerDomain + "/api/v1/s/terminal/deletefiles"
 var RequestCheckVersion = ServerDomain + "/api/v1/common/terminalversion"
+var PanicReportUrl = ServerDomain + "/api/v1/common/panicreport"
 
 var FilePort = ""
 var ApiPort = ""

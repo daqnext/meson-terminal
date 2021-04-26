@@ -1,6 +1,7 @@
 package routerpath
 
 import (
+	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
@@ -9,6 +10,9 @@ import (
 
 func RequestServer() *gin.Engine {
 	cdnGin := gin.Default()
+
+	//send panic to server
+	cdnGin.Use(panichandler.Recover)
 
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true

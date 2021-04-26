@@ -169,8 +169,10 @@ func FileRequestLoggerMiddleware() gin.HandlerFunc {
 func DeleteTimeoutLog() {
 	defer panichandler.CatchPanicStack()
 
-	logger.DeleteLog("./dailylog", 7*24*3600)
-	logger.DeleteLog("./requestRecordlog", 7*24*3600)
+	recordPath := filepath.Join(runpath.RunPath, "./dailylog")
+	logger.DeleteLog(recordPath, 7*24*3600)
+	recordPath = filepath.Join(runpath.RunPath, "./requestRecordlog")
+	logger.DeleteLog(recordPath, 7*24*3600)
 }
 
 func UploadFileRequestLog(fileName string) {

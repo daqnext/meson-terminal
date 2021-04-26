@@ -36,8 +36,7 @@ func StartScheduleJob() {
 	}
 
 	//version check
-	randSecond = rand.Intn(60)
-	schedule = fmt.Sprintf("%d %d * * * *", randSecond, randSecond)
+	schedule = fmt.Sprintf("0 %d/30 * * * *", rand.Intn(30))
 	jobId, err = c.AddFunc(schedule, versionmgr.CheckVersion)
 	if err != nil {
 		logger.Error("ScheduleJob-"+"VersionCheck"+" start error", "err", err)

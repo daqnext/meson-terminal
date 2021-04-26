@@ -153,11 +153,12 @@ func GetMachineState() *commonmsg.TerminalStatesMsg {
 func GetMachineSetupTime() string {
 	switch runtime.GOOS {
 	case "linux":
-		result, err := utils.RunCommand("ls", "-lact", "--full-time", "/etc | tail -1 |awk '{print $6,$7}'")
+		result, err := utils.RunCommand("/bin/bash", "-c", "ls -lact --full-time /etc | tail -1 |awk '{print $6,$7}'")
 		if err != nil {
 			logger.Debug("aws ec2 run command err", "err", err)
 			return "unknown"
 		}
+		logger.Debug("machine setup time", "time", result)
 		return result
 	case "windows":
 		return "windows unknown"

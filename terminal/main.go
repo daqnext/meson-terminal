@@ -181,7 +181,7 @@ type Service struct {
 // Manage by daemon commands or run the daemon
 func (service *Service) Manage() (string, error) {
 
-	usage := "Usage: meson install | remove | start | stop | status"
+	//usage := "Usage: meson install | remove | start | stop | status"
 	// If received any kind of command, do it
 	if len(os.Args) > 1 {
 		command := os.Args[1]
@@ -215,7 +215,7 @@ func (service *Service) Manage() (string, error) {
 		case "status":
 			return service.Status()
 		default:
-			return usage, nil
+			//return usage, nil
 		}
 	}
 	// Set up channel on which to send signal notifications.

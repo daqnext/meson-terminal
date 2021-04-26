@@ -427,8 +427,8 @@ func CheckConfig() {
 func ReadFlag() {
 	flag.StringVar(&token, Token, "", "token register and login in https://meson.network")
 	flag.StringVar(&port, Port, "", "server port")
-	flag.IntVar(&spacelimit, SpaceLimit, 0, "cdu space use limit")
-	flag.StringVar(&serverdomain, ServerDomain, "http://coldcdn.com", "server domain")
+	flag.IntVar(&spacelimit, SpaceLimit, 0, "cdn space use limit")
+	flag.StringVar(&serverdomain, ServerDomain, "", "server domain")
 	//flag.Parse()
 }
 
@@ -444,7 +444,7 @@ func ReadConfigFile() {
 
 	SetDefault(Token, "")
 	SetDefault(Port, "")
-	SetDefault(ServerDomain, "")
+	SetDefault(ServerDomain, "http://coldcdn.com")
 	SetDefault(SpaceLimit, "0")
 	SetDefault(ApiProto, "https")
 	SetDefault(LogLevel, "4")

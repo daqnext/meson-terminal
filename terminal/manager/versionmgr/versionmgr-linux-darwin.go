@@ -199,7 +199,7 @@ func RestartTerminal() {
 		cmd := exec.Command("/bin/bash", "-c", command)
 		cmd.Run()
 	} else {
-		logger.Fatal("New version download finish.Please restart")
+		logger.Error("New version download finish.Please restart")
 	}
 
 }

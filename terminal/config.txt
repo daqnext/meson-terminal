@@ -1,6 +1,7 @@
 #token register and login in https://meson.network
 token = 
 
+
 # server port DO NOT run in 80 or 443
 # open this port on your firewall
 # default 19091

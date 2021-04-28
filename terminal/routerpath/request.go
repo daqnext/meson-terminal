@@ -35,10 +35,9 @@ func init() {
 	defaultGin.GinInstance.Use(panichandler.Recover)
 
 	defaultGin.EnableDefaultCors()
-	//http://bindname.coldcdn.com/xxxxxxxxx
-	defaultGin.GinInstance.Any("/*action", terminallogger.FileRequestLoggerMiddleware(), requestHandler)
 	//http://bindname-terminaltag.shoppynext.com/xxxxxxxxx
 	defaultGin.GinInstance.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedExtensions([]string{".bin"})))
+	defaultGin.GinInstance.Any("/*action", terminallogger.FileRequestLoggerMiddleware(), requestHandler)
 
 	//inner check gin
 	checkStartGin := ginrouter.New(CheckStartGin)

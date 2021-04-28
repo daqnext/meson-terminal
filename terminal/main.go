@@ -94,7 +94,11 @@ func run() {
 				global.TerminalIsRunning = true
 			}
 		case <-time.After(45 * time.Second):
-			logger.Fatal("Net connect error. Please confirm that your machine can be accessed by the external network and the port is opened on the firewall.")
+			logger.Error("Net connect error. Please confirm that your machine can be accessed by the external network and the port is opened on the firewall.")
+			if MesonService != nil {
+				MesonService.Stop()
+			}
+			logger.Fatal("Terminal Stopped")
 		}
 	}()
 
@@ -178,6 +182,8 @@ type Service struct {
 	daemon.Daemon
 }
 
+var MesonService *Service
+
 // Manage by daemon commands or run the daemon
 func (service *Service) Manage() (string, error) {
 
@@ -202,6 +208,7 @@ func (service *Service) Manage() (string, error) {
 			if err != nil {
 				logger.Error("RecordConfigToFile error", "err", err)
 			}
+			service.Stop()
 			return service.Remove()
 		case "start":
 			//domain check
@@ -258,12 +265,12 @@ func main() {
 		logger.Error("New daemon Error: ", "err", err)
 		os.Exit(1)
 	}
-	service := &Service{srv}
+	MesonService = &Service{srv}
 	if _, err := os.Stat("/run/systemd/system"); err == nil {
-		service.SetTemplate(systemDConfig)
+		MesonService.SetTemplate(systemDConfig)
 	}
 
-	status, err := service.Manage()
+	status, err := MesonService.Manage()
 	if err != nil {
 		fmt.Println(status, "\nError: ", err)
 		os.Exit(1)

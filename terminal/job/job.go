@@ -18,6 +18,7 @@ func StartPreJob() {
 
 func StartLoopJob() {
 	statemgr.LoopJob()
+	terminallogger.RecordFileRequest()
 }
 
 func StartScheduleJob() {

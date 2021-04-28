@@ -52,21 +52,21 @@ func Init() {
 	if !utils.Exists(global.FileDirPath) {
 		err := os.Mkdir(global.FileDirPath, 0777)
 		if err != nil {
-			logger.Fatal("tempfile dir create failed, please create dir " + global.FileDirPath + " by manual")
+			logger.Fatal("tempfile dir create failed, please create dir " + global.FileDirPath + " by manual or try to run program with admin permission.")
 		}
 	}
 
 	if !utils.Exists(global.SpaceHolderDir) {
 		err := os.Mkdir(global.SpaceHolderDir, 0777)
 		if err != nil {
-			logger.Fatal("spaceHolder dir create failed, please create dir " + global.SpaceHolderDir + " by manual")
+			logger.Fatal("spaceHolder dir create failed, please create dir " + global.SpaceHolderDir + " by manual or try to run program with admin permission.")
 		}
 	}
 
 	if !utils.Exists(global.FileDirPath + "/standardfile") {
 		err := os.Mkdir(global.FileDirPath+"/standardfile", 0777)
 		if err != nil {
-			logger.Fatal("tempfile dir create failed, please create dir " + global.FileDirPath + "/standardfile" + " by manual")
+			logger.Fatal("tempfile dir create failed, please create dir " + global.FileDirPath + "/standardfile" + " by manual or try to run program with admin permission.")
 		}
 	}
 

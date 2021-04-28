@@ -2,6 +2,7 @@ package domainmgr
 
 import (
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-common/common/resp"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/imroc/req"
@@ -87,9 +88,22 @@ func CheckDomain(url string) bool {
 	}
 	responseData := response.Response()
 	responseStatusCode := responseData.StatusCode
-	if responseStatusCode == 200 {
-		return true
-	} else {
+	if responseStatusCode != 200 {
 		return false
 	}
+
+	var respBody resp.RespBody
+	err = response.ToJSON(&respBody)
+	if err != nil {
+		logger.Error("ToJSON error", "err", err)
+		return false
+	}
+
+	switch respBody.Status {
+	case 0:
+		return true
+	default:
+		return false
+	}
+
 }

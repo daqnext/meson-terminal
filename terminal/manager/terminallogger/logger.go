@@ -20,6 +20,7 @@ import (
 )
 
 var FileRequestLogger *logrus.Logger
+var FileRequestChan = make(chan string, 1024*100)
 
 func init() {
 	InitDefaultLogger()
@@ -58,7 +59,7 @@ func InitFileRequestLogger() {
 	fileWriter := logger.LogFileWriter{
 		RootDir:         recordPath,
 		OnLogFileChange: UploadFileRequestLog,
-		MaxSize:         1024 * 3, //only for test
+		//MaxSize:         1024 * 3, //only for test
 	}
 	log.SetOutput(&fileWriter)
 
@@ -162,8 +163,18 @@ func FileRequestLoggerMiddleware() gin.HandlerFunc {
 
 		param.Path = path
 
-		fmt.Fprint(FileRequestLogger.Out, FileRequestLogFormatter(param))
+		//fmt.Fprint(FileRequestLogger.Out, FileRequestLogFormatter(param))
+		FileRequestChan <- FileRequestLogFormatter(param)
 	}
+}
+
+func RecordFileRequest() {
+	go func() {
+		for true {
+			record := <-FileRequestChan
+			fmt.Fprint(FileRequestLogger.Out, record)
+		}
+	}()
 }
 
 func DeleteTimeoutLog() {
@@ -186,6 +197,7 @@ func UploadFileRequestLog(fileName string) {
 		logger.Error("UploadFileRequestLog open log file error", "err", err, "fileName", fileName)
 		return
 	}
+	defer file.Close()
 	stat, err := file.Stat()
 	if err != nil {
 		logger.Error("UploadFileRequestLog file.Stat() error", "err", err, "fileName", fileName)
@@ -200,7 +212,7 @@ func UploadFileRequestLog(fileName string) {
 
 	logFilePath := fileName
 	url := domainmgr.UsingDomain + global.UploadFileRequestLog
-	fmt.Println(url)
+	//fmt.Println(url)
 	_, err = req.Post(url, req.File(logFilePath), authHeader)
 	if err != nil {
 		logger.Error("upload fileRequestLog error", "err", err, "file", logFilePath)

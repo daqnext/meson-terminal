@@ -46,6 +46,7 @@ func LoopJob() {
 
 func CalAverageNetSpeed() {
 	go func() {
+		defer panichandler.CatchPanicStack()
 		for true {
 			if n, err := net.IOCounters(false); err == nil && len(n) > 0 {
 				for i, _ := range n {
@@ -75,6 +76,7 @@ func CalAverageNetSpeed() {
 
 func CalCpuAverageUsage() {
 	go func() {
+		defer panichandler.CatchPanicStack()
 		for true {
 			percent, err := cpu.Percent(time.Second, false)
 			if err != nil || len(percent) <= 0 {

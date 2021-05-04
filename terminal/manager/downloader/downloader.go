@@ -40,9 +40,12 @@ func DownloadFile(url string, savePath string) error {
 
 func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
 	dir := global.FileDirPath + "/" + downloadCmd.BindName
-	//dir = filepath.Join(runpath.RunPath, dir)
 	if !utils.Exists(dir) {
-		os.MkdirAll(dir, 0777)
+		err := os.MkdirAll(dir, 0777)
+		if err != nil {
+			logger.Error("AddToDownloadQueue os.MkdirAll error", "err", err, "dir", dir)
+			return err
+		}
 	}
 	fileName := utils.FileAddMark(downloadCmd.FileName, common.RedirectMark)
 	savePath := dir + "/" + fileName
@@ -130,6 +133,55 @@ func OnDownloadFailed(task *downloadtaskmgr.DownloadTask) {
 	}
 }
 
+func OnDownloadStart(task *downloadtaskmgr.DownloadTask) {
+	defer panichandler.CatchPanicStack()
+	//send down load start msg
+	logger.Debug("Download Start", "task", task)
+	payload := commonmsg.TerminalDownloadStartMsg{
+		BindName:         task.BindName,
+		FileName:         task.FileName,
+		RequestContinent: task.Continent,
+		RequestCountry:   task.Country,
+		RequestArea:      task.Area,
+	}
+	logger.Debug("report start to server", "msg", payload)
+	header := map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": "Bearer " + accountmgr.Token,
+	}
+	_, err := httputils.Request("POST", domainmgr.UsingDomain+global.ReportDownloadStartUrl, payload, header)
+	if err != nil {
+		logger.Error("send downloadStart msg to server error", "err", err)
+	}
+}
+
+func OnDownloading(task *downloadtaskmgr.DownloadTask, usedTimeSec int) {
+	defer panichandler.CatchPanicStack()
+	//send download process info
+	logger.Debug("Download Process", "downloaded", task.DownloadedSize, "usedTimeSec", usedTimeSec)
+	if usedTimeSec%60000 != 0 {
+		return
+	}
+
+	payload := commonmsg.TerminalDownloadProcessMsg{
+		BindName:         task.BindName,
+		FileName:         task.FileName,
+		RequestContinent: task.Continent,
+		RequestCountry:   task.Country,
+		RequestArea:      task.Area,
+		Downloaded:       task.DownloadedSize,
+	}
+	logger.Debug("report process to server", "msg", payload)
+	header := map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": "Bearer " + accountmgr.Token,
+	}
+	_, err := httputils.Request("POST", domainmgr.UsingDomain+global.ReportDownloadProcessUrl, payload, header)
+	if err != nil {
+		logger.Error("send downloadprocess msg to server error", "err", err)
+	}
+}
+
 func StartDownloadJob() {
 	//create folder
 	if !utils.Exists(global.FileDirPath) {
@@ -140,6 +192,8 @@ func StartDownloadJob() {
 	downloadtaskmgr.SetPanicCatcher(panichandler.CatchPanicStack)
 	downloadtaskmgr.SetOnTaskSuccess(OnDownloadSuccess)
 	downloadtaskmgr.SetOnTaskFailed(OnDownloadFailed)
+	downloadtaskmgr.SetOnDownloadStart(OnDownloadStart)
+	downloadtaskmgr.SetOnDownloading(OnDownloading)
 
 	//start loop
 	downloadtaskmgr.Run()

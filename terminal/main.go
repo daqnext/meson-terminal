@@ -74,7 +74,11 @@ func run() {
 	//publicKey
 	err = security.InitPublicKey(publicKeyPath)
 	if err != nil {
-		logger.Fatal("InitPublicKey error, try to download key by manual", "err", err)
+		logger.Error("InitPublicKey error, try to download key by manual", "err", err)
+		if MesonService != nil {
+			MesonService.Stop()
+		}
+		logger.Fatal("Terminal Stopped")
 	}
 
 	defer panichandler.CatchPanicStack()

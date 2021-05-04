@@ -285,6 +285,7 @@ func ScanExpirationFiles() {
 }
 
 func DeleteEmptyFolder() {
+	defer panichandler.CatchPanicStack()
 	utils.DeleteEmptyFolders(global.FileDirPath)
 }
 

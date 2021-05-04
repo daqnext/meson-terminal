@@ -10,6 +10,8 @@ var SpaceHolderDir = filepath.Join(runpath.RunPath, "./spaceholder")
 
 var ReportDownloadFinishUrl = "/api/v1/s/terminal/downloadfinish"
 var ReportDownloadFailedUrl = "/api/v1/s/terminal/downloadfailed"
+var ReportDownloadStartUrl = "/api/v1/s/terminal/downloadstart"
+var ReportDownloadProcessUrl = "/api/v1/s/terminal/downloadprocess"
 var SendHeartBeatUrl = "/api/v1/s/terminal/heartbeat"
 var TerminalLoginUrl = "/api/v1/s/serverreg/terminallogin"
 var RequestFileExpirationTimeUrl = "/api/v1/s/terminal/expirationtime"

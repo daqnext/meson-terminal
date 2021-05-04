@@ -170,6 +170,7 @@ func FileRequestLoggerMiddleware() gin.HandlerFunc {
 
 func RecordFileRequest() {
 	go func() {
+		defer panichandler.CatchPanicStack()
 		for true {
 			record := <-FileRequestChan
 			fmt.Fprint(FileRequestLogger.Out, record)

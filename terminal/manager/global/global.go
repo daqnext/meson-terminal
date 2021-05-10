@@ -12,6 +12,7 @@ var ReportDownloadFinishUrl = "/api/v1/s/terminal/downloadfinish"
 var ReportDownloadFailedUrl = "/api/v1/s/terminal/downloadfailed"
 var ReportDownloadStartUrl = "/api/v1/s/terminal/downloadstart"
 var ReportDownloadProcessUrl = "/api/v1/s/terminal/downloadprocess"
+
 var SendHeartBeatUrl = "/api/v1/s/terminal/heartbeat"
 var TerminalLoginUrl = "/api/v1/s/serverreg/terminallogin"
 var RequestFileExpirationTimeUrl = "/api/v1/s/terminal/expirationtime"
@@ -19,6 +20,8 @@ var RequestToDeleteFilesUrl = "/api/v1/s/terminal/deletefiles"
 var RequestCheckVersion = "/api/v1/common/terminalversion"
 var PanicReportUrl = "/api/v1/common/panicreport"
 var UploadFileRequestLog = "/api/v1/s/terminal/uploadlog"
+
+var GetFixRegionServerUrl = "/api/v1/s/terminal/fixregion"
 
 var HealthCheckPort = ""
 

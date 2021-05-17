@@ -10,8 +10,8 @@ import (
 	"github.com/daqnext/meson-common/common/resp"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
-	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
+	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/daqnext/meson-terminal/terminal/manager/versionmgr"
@@ -173,7 +173,7 @@ func GetMachineSetupTime() string {
 func SendStateFail() {
 	ConsecutiveFailures++
 	if ConsecutiveFailures >= 6 {
-		domainmgr.CheckAvailableDomain()
+		fixregionmgr.CheckAvailable()
 	}
 }
 
@@ -186,7 +186,7 @@ func SendStateToServer() {
 		"Authorization": "Bearer " + accountmgr.Token,
 	}
 	//提交请求
-	content, err := httputils.Request("POST", domainmgr.UsingDomain+global.SendHeartBeatUrl, machineState, header)
+	content, err := httputils.Request("POST", fixregionmgr.FixRegionD+global.SendHeartBeatUrl, machineState, header)
 	if err != nil {
 		logger.Error("send terminalState to server error", "err", err)
 		SendStateFail()

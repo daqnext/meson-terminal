@@ -6,7 +6,7 @@ import (
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/runpath"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
-	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
+	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/gin-gonic/gin"
@@ -212,7 +212,7 @@ func UploadFileRequestLog(fileName string) {
 	file.Close()
 
 	logFilePath := fileName
-	url := domainmgr.UsingDomain + global.UploadFileRequestLog
+	url := fixregionmgr.FixRegionD + global.UploadFileRequestLog
 	//fmt.Println(url)
 	_, err = req.Post(url, req.File(logFilePath), authHeader)
 	if err != nil {

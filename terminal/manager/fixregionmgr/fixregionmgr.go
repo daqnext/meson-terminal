@@ -12,10 +12,10 @@ import (
 )
 
 var healthPath = "/api/testapi/health"
-var UsingDomain = config.UsingServerDomain
+var Using = config.Using
 
-var backupDomain = map[string]int{}
-var isCheckingAvailableDomain = false
+var others = map[string]int{}
+var isChecking = false
 
 var FixRegionD string
 
@@ -27,9 +27,9 @@ func init() {
 		k = "http://" + k + ".com"
 		//fmt.Println(k)
 
-		backupDomain[k] = 1
+		others[k] = 1
 	}
-	backupDomain[UsingDomain] = 1
+	others[Using] = 1
 
 	//fmt.Println(backupDomain)
 }
@@ -43,34 +43,35 @@ func reverseString(s string) string {
 	return string(runes)
 }
 
-func CheckAvailableDomain() {
+func CheckAvailable() {
 
-	if isCheckingAvailableDomain {
+	if isChecking {
 		return
 	}
-	logger.Debug("checking available domain")
-	isCheckingAvailableDomain = true
+	logger.Debug("Initializing...")
+	isChecking = true
 	defer func() {
-		isCheckingAvailableDomain = false
+		isChecking = false
 	}()
 
-	usingUrl := UsingDomain + healthPath
-	checkResult := CheckDomain(usingUrl)
+	usingUrl := Using + healthPath
+	checkResult := CheckOthers(usingUrl)
 	if checkResult {
+		GetFixRegion()
 		return
 	}
 
-	logger.Info("domain not available, start to check backup domain")
-	backupDomain[UsingDomain] = 1
+	logger.Debug("start to check others")
+	others[Using] = 1
 	time.Sleep(5 * time.Second)
 	for i := 0; i < 2; i++ {
-		for k, _ := range backupDomain {
+		for k := range others {
 			checkUrl := k + healthPath
-			checkResult = CheckDomain(checkUrl)
+			checkResult = CheckOthers(checkUrl)
 			if checkResult {
-				UsingDomain = k
-				logger.Info("Find available domain", "domain", UsingDomain)
-				config.RecordConfigLineToFile(config.ServerDomain, UsingDomain)
+				Using = k
+				logger.Debug("Find another", "another", Using)
+				config.RecordConfigLineToFile(config.Server, Using)
 				GetFixRegion()
 				return
 			} else {
@@ -82,7 +83,7 @@ func CheckAvailableDomain() {
 	logger.Error("Please check network environment or download new version Terminal in https://meson.network")
 }
 
-func CheckDomain(url string) bool {
+func CheckOthers(url string) bool {
 	r := req.New()
 	r.SetTimeout(time.Duration(8) * time.Second)
 	response, err := r.Get(url)
@@ -115,17 +116,17 @@ func CheckDomain(url string) bool {
 func GetFixRegion() {
 	r := req.New()
 	r.SetTimeout(time.Duration(8) * time.Second)
-	url := UsingDomain + global.GetFixRegionServerUrl
+	url := Using + global.GetFixRegionServerUrl
 	response, err := r.Get(url)
 	if err != nil {
 		logger.Error("request error", "err", err)
-		FixRegionD = UsingDomain
+		FixRegionD = Using
 		return
 	}
 	responseData := response.Response()
 	responseStatusCode := responseData.StatusCode
 	if responseStatusCode != 200 {
-		FixRegionD = UsingDomain
+		FixRegionD = Using
 		return
 	}
 
@@ -133,21 +134,26 @@ func GetFixRegion() {
 	err = response.ToJSON(&respBody)
 	if err != nil {
 		logger.Error("ToJSON error", "err", err)
-		FixRegionD = UsingDomain
+		FixRegionD = Using
 		return
 	}
 
 	switch respBody.Status {
 	case 0:
 		v := respBody.Data
-		domain, ok := v.(string)
+		value, ok := v.(string)
 		if ok == false {
-			FixRegionD = UsingDomain
+			FixRegionD = Using
 			return
 		}
-		FixRegionD = domain
+		if value == "" {
+			FixRegionD = Using
+			return
+		}
+		FixRegionD = "http://" + value
+		return
 	default:
-		FixRegionD = UsingDomain
+		FixRegionD = Using
 		return
 	}
 }

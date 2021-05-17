@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/daqnext/meson-common/common/runpath"
+	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
 	"github.com/takama/daemon"
 	"os"
 	"os/signal"
@@ -23,7 +24,6 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/job"
 	"github.com/daqnext/meson-terminal/terminal/manager/account"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
-	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
@@ -49,15 +49,15 @@ After={{.Dependencies}}
 [Service]
 PIDFile=/var/run/{{.Name}}.pid
 ExecStartPre=/bin/rm -f /var/run/{{.Name}}.pid
-ExecStart={{.Path}} {{.Args}}
+ExecStart=/bin/sh -c '{{.Path}} {{.Args}}'
 Restart=always
 [Install]
 WantedBy=multi-user.target
 `
 
 func run() {
-	//domain check
-	domainmgr.CheckAvailableDomain()
+	//check
+	fixregionmgr.CheckAvailable()
 
 	//version check
 	versionmgr.CheckVersion()
@@ -84,7 +84,7 @@ func run() {
 	defer panichandler.CatchPanicStack()
 
 	//login
-	account.TerminalLogin(domainmgr.UsingDomain+global.TerminalLoginUrl, config.UsingToken)
+	account.TerminalLogin(fixregionmgr.Using+global.TerminalLoginUrl, config.UsingToken)
 	filemgr.Init()
 
 	//waiting for confirm msg
@@ -154,9 +154,9 @@ func run() {
 		return nil
 	})
 
-	//if err := g.Wait(); err != nil {
-	//	logger.Fatal("gin server error", "err", err)
-	//}
+	if err := g.Wait(); err != nil {
+		logger.Fatal("gin server error", "err", err)
+	}
 }
 
 func CheckGinStart(onStart func()) {
@@ -198,10 +198,11 @@ func (service *Service) Manage() (string, error) {
 		switch command {
 		case "install":
 			//domain check
-			domainmgr.CheckAvailableDomain()
+			fixregionmgr.CheckAvailable()
 			config.CheckConfig()
-			account.TerminalLogin(domainmgr.UsingDomain+global.TerminalLoginUrl, config.UsingToken)
-			return service.Install()
+			account.TerminalLogin(fixregionmgr.Using+global.TerminalLoginUrl, config.UsingToken)
+			errorLog := filepath.Join(runpath.RunPath, "./error.log")
+			return service.Install("2>>" + errorLog)
 		case "remove":
 			newConfigs := map[string]string{
 				config.Token:      "",
@@ -216,9 +217,9 @@ func (service *Service) Manage() (string, error) {
 			return service.Remove()
 		case "start":
 			//domain check
-			domainmgr.CheckAvailableDomain()
+			fixregionmgr.CheckAvailable()
 			config.CheckConfig()
-			account.TerminalLogin(domainmgr.UsingDomain+global.TerminalLoginUrl, config.UsingToken)
+			account.TerminalLogin(fixregionmgr.Using+global.TerminalLoginUrl, config.UsingToken)
 			return service.Start()
 		case "stop":
 			// No need to explicitly stop cron since job will be killed
@@ -271,7 +272,10 @@ func main() {
 	}
 	MesonService = &Service{srv}
 	if _, err := os.Stat("/run/systemd/system"); err == nil {
-		MesonService.SetTemplate(systemDConfig)
+		err := MesonService.SetTemplate(systemDConfig)
+		if err != nil {
+			logger.Error("MesonService SetTemplate error", "err", err)
+		}
 	}
 
 	status, err := MesonService.Manage()
@@ -279,5 +283,5 @@ func main() {
 		fmt.Println(status, "\nError: ", err)
 		os.Exit(1)
 	}
-	fmt.Println(status)
+	//fmt.Println(status)
 }

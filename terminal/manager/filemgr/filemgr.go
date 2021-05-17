@@ -11,7 +11,7 @@ import (
 	"github.com/daqnext/meson-common/common/resp"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
-	"github.com/daqnext/meson-terminal/terminal/manager/domainmgr"
+	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
@@ -215,7 +215,7 @@ func ScanExpirationFiles() {
 		"Authorization": "Bearer " + accountmgr.Token,
 	}
 
-	respCtx, err := httputils.Request("GET", domainmgr.UsingDomain+global.RequestFileExpirationTimeUrl, nil, header)
+	respCtx, err := httputils.Request("GET", fixregionmgr.FixRegionD+global.RequestFileExpirationTimeUrl, nil, header)
 	if err != nil {
 		logger.Error("Request FileExpirationTime error", "err", err)
 		return
@@ -251,7 +251,7 @@ func ScanExpirationFiles() {
 	payload := commonmsg.TerminalRequestDeleteFilesMsg{
 		Files: expirationFiles,
 	}
-	respCtx, err = httputils.Request("POST", domainmgr.UsingDomain+global.RequestToDeleteFilesUrl, payload, header)
+	respCtx, err = httputils.Request("POST", fixregionmgr.FixRegionD+global.RequestToDeleteFilesUrl, payload, header)
 	if err != nil {
 		logger.Error("Request DeleteFils error", "err", err)
 		return

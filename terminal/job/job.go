@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
+	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
 	"github.com/daqnext/meson-terminal/terminal/manager/versionmgr"
@@ -37,12 +38,20 @@ func StartScheduleJob() {
 	}
 
 	//version check
-	schedule = fmt.Sprintf("0 %d/30 * * * *", rand.Intn(30))
+	schedule = fmt.Sprintf("%d %d * * * *", rand.Intn(60), rand.Intn(60))
 	jobId, err = c.AddFunc(schedule, versionmgr.CheckVersion)
 	if err != nil {
 		logger.Error("ScheduleJob-"+"VersionCheck"+" start error", "err", err)
 	} else {
 		logger.Debug("ScheduleJob-"+"VersionCheck"+" start", "ID", jobId, "Schedule", schedule)
+	}
+
+	schedule = fmt.Sprintf("%d %d/10 * * * *", rand.Intn(60), rand.Intn(10))
+	jobId, err = c.AddFunc(schedule, fixregionmgr.GetFixRegion)
+	if err != nil {
+		logger.Error("ScheduleJob-"+"GetFixRegionD"+" start error", "err", err)
+	} else {
+		logger.Debug("ScheduleJob-"+"GetFixRegionD"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
 	//sync folder size

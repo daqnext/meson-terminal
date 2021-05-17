@@ -16,29 +16,29 @@ import (
 )
 
 const (
-	Token        string = "token"
-	Port         string = "port"
-	SpaceLimit   string = "spacelimit"
-	ServerDomain string = "serverdomain"
-	ApiProto     string = "apiProto"
-	LogLevel     string = "loglevel"
-	GinMode      string = "ginMode"
+	Token      string = "token"
+	Port       string = "port"
+	SpaceLimit string = "spacelimit"
+	Server     string = "server"
+	ApiProto   string = "apiProto"
+	LogLevel   string = "loglevel"
+	GinMode    string = "ginMode"
 )
 
 var ConfigPath string
 var configMap = map[string]string{}
 var (
-	token        string
-	port         string
-	spacelimit   int
-	serverdomain string
+	token      string
+	port       string
+	spacelimit int
+	server     string
 )
 
 var (
-	UsingToken        string
-	UsingPort         string
-	UsingSpaceLimit   int
-	UsingServerDomain string
+	UsingToken      string
+	UsingPort       string
+	UsingSpaceLimit int
+	Using           string
 )
 
 var fileLock sync.Mutex
@@ -351,9 +351,9 @@ func ReadConfig() {
 		UsingSpaceLimit = GetInt(SpaceLimit)
 	}
 
-	UsingServerDomain = serverdomain
-	if UsingServerDomain == "" {
-		UsingServerDomain = GetString(ServerDomain)
+	Using = server
+	if Using == "" {
+		Using = GetString(Server)
 	}
 }
 
@@ -428,7 +428,7 @@ func ReadFlag() {
 	flag.StringVar(&token, Token, "", "token register and login in https://meson.network")
 	flag.StringVar(&port, Port, "", "server port")
 	flag.IntVar(&spacelimit, SpaceLimit, 0, "cdn space use limit")
-	flag.StringVar(&serverdomain, ServerDomain, "", "server domain")
+	flag.StringVar(&server, Server, "", "server")
 	//flag.Parse()
 }
 
@@ -444,7 +444,7 @@ func ReadConfigFile() {
 
 	SetDefault(Token, "")
 	SetDefault(Port, "")
-	SetDefault(ServerDomain, "http://coldcdn.com")
+	SetDefault(Server, "http://coldcdn.com")
 	SetDefault(SpaceLimit, "0")
 	SetDefault(ApiProto, "https")
 	SetDefault(LogLevel, "4")

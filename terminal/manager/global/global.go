@@ -21,7 +21,7 @@ var RequestCheckVersion = "/api/v1/common/terminalversion"
 var PanicReportUrl = "/api/v1/common/panicreport"
 var UploadFileRequestLog = "/api/v1/s/terminal/uploadlog"
 
-var GetFixRegionServerUrl = "/api/v1/s/terminal/fixregion"
+var GetFixRegionServerUrl = "/api/v1/common/fixregion"
 
 var HealthCheckPort = ""
 

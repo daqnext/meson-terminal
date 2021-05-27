@@ -1,6 +1,8 @@
 package fixregionmgr
 
 import (
+	"github.com/daqnext/meson-common/common/accountmgr"
+	"github.com/daqnext/meson-common/common/commonmsg"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/resp"
 	"github.com/daqnext/meson-common/common/utils"
@@ -13,6 +15,9 @@ import (
 
 var healthPath = "/api/testapi/health"
 var Using = config.Using
+
+var CdnTrack = "coldcdn.com"
+var TerminalTrack = "shoppynext.com"
 
 var others = map[string]int{}
 var isChecking = false
@@ -44,7 +49,6 @@ func reverseString(s string) string {
 }
 
 func CheckAvailable() {
-
 	if isChecking {
 		return
 	}
@@ -113,13 +117,62 @@ func CheckOthers(url string) bool {
 
 }
 
+func SyncTrackHost() {
+	r := req.New()
+	r.SetTimeout(time.Duration(8) * time.Second)
+	url := Using + global.SyncTrackHostUrl
+	header := req.Header{
+		"Content-Type":  "application/json",
+		"Authorization": "Bearer " + accountmgr.Token,
+	}
+	response, err := r.Get(url, header)
+	if err != nil {
+		logger.Error("SyncTrackHost request error", "err", err, "url", url)
+		return
+	}
+	responseData := response.Response()
+	responseStatusCode := responseData.StatusCode
+	if responseStatusCode != 200 {
+		return
+	}
+
+	type TrackHostRespBody struct {
+		Status int                      `json:"status"`
+		Data   commonmsg.TrackDomainMsg `json:"data"`
+		Msg    string                   `json:"msg"`
+	}
+
+	var respBody TrackHostRespBody
+	err = response.ToJSON(&respBody)
+	if err != nil {
+		logger.Error("SyncTrackHost ToJSON error", "err", err)
+		return
+	}
+
+	switch respBody.Status {
+	case 0:
+		v := respBody.Data
+		CdnTrack = v.CdnTrackDomain
+		if CdnTrack == "" {
+			CdnTrack = "coldcdn.com"
+		}
+		TerminalTrack = v.TerminalDomain
+		if TerminalTrack == "" {
+			TerminalTrack = "shoppynext.com"
+		}
+		return
+	default:
+		return
+	}
+}
+
 func GetFixRegion() {
 	r := req.New()
 	r.SetTimeout(time.Duration(8) * time.Second)
 	url := Using + global.GetFixRegionServerUrl
 	response, err := r.Get(url)
 	if err != nil {
-		logger.Error("request error", "err", err)
+		logger.Error("request error", "err", err, "url", url)
 		FixRegionD = Using
 		return
 	}

@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"errors"
 	"github.com/daqnext/meson-common/common"
 	"github.com/daqnext/meson-common/common/accountmgr"
 	"github.com/daqnext/meson-common/common/commonmsg"
@@ -27,11 +28,15 @@ func DownloadFile(url string, savePath string) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != 200 {
+		return errors.New("DownloadFile Status:" + resp.Status)
+	}
+
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(savePath, data, 0644)
+	err = ioutil.WriteFile(savePath, data, 0777)
 	if err != nil {
 		return err
 	}

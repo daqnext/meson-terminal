@@ -9,13 +9,33 @@ import (
 	"encoding/pem"
 	"errors"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-common/common/runpath"
+	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
 	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
 	"os"
+	"path/filepath"
 	"time"
 )
 
 var PublicKey *rsa.PublicKey = nil
 var KeyPath = "./meson_PublicKey.pem"
+
+func DownloadAndInitPublicKey() error {
+	//download publickey
+	publicKeyPath := filepath.Join(runpath.RunPath, KeyPath)
+	url := "https://assets.meson.network:10443/static/terminal/publickey/meson_PublicKey.pem"
+	err := downloader.DownloadFile(url, publicKeyPath)
+	if err != nil {
+		logger.Error("download publicKey url="+url+"error", "err", err)
+	}
+
+	//publicKey
+	err = InitPublicKey(publicKeyPath)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 // ParsePublicKey
 func ParsePublicKey(publicKeyPath string) (*rsa.PublicKey, error) {

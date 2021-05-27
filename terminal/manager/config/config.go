@@ -405,21 +405,30 @@ func CheckConfig() {
 
 	var space string
 	if UsingSpaceLimit == 0 {
-		fmt.Println("Please input the disk space you want to provide.The more space you provide, the higher profit you will get")
-		fmt.Printf("For example if you provide 100GB, please input 100 (40GB disk space is the minimum, default will be 80GB):")
-		_, err := fmt.Scanln(&space)
-		if err != nil {
-			UsingSpaceLimit = 80
-			fmt.Println("read input error,server will use default 80G.You can modify this value in config.txt")
+		for {
+			fmt.Println("Please input the disk space you want to provide.The more space you provide, the higher profit you will get")
+			fmt.Printf("For example if you provide 100GB, please input 100 \n(40GB disk space is the minimum, default will be 80GB. Please make sure you have enough free space):")
+			_, err := fmt.Scanln(&space)
+			if err != nil {
+				UsingSpaceLimit = 80
+				fmt.Println("read input error,server will use default 80G.You can modify this value in config.txt")
+				return
+			}
+			num, err := strconv.Atoi(space)
+			if err != nil {
+				UsingSpaceLimit = 80
+				fmt.Println("input space error, please input number only")
+				continue
+			}
+			if num < 40 && GetString("runMode") != "local" {
+				fmt.Println("40GB disk space is the minimum.")
+				continue
+			}
+
+			UsingSpaceLimit = num
 			return
 		}
-		num, err := strconv.Atoi(space)
-		if err != nil {
-			UsingSpaceLimit = 80
-			fmt.Println("input space error,server will use default 80G.You can modify this value in config.txt")
-			return
-		}
-		UsingSpaceLimit = num
+
 	}
 
 }

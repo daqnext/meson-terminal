@@ -39,6 +39,8 @@ var cpuUsageSum = float64(0)
 var netBytesRecv = []uint64{0, 0, 0, 0, 0}
 var netBytesSent = []uint64{0, 0, 0, 0, 0}
 
+var sequenceId = 0
+
 func LoopJob() {
 	CalAverageNetSpeed()
 	CalCpuAverageUsage()
@@ -180,7 +182,13 @@ func SendStateFail() {
 func SendStateToServer() {
 	defer panichandler.CatchPanicStack()
 
+	if sequenceId > (1 << 30) {
+		sequenceId = 10
+	}
+	sequenceId++
+
 	machineState := GetMachineState()
+	machineState.SequenceId = sequenceId
 	header := map[string]string{
 		"Content-Type":  "application/json",
 		"Authorization": "Bearer " + accountmgr.Token,

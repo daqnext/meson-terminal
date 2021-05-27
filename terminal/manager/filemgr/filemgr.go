@@ -2,6 +2,7 @@ package filemgr
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/daqnext/meson-common/common"
 	"github.com/daqnext/meson-common/common/accountmgr"
@@ -17,6 +18,7 @@ import (
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
 	"github.com/shirou/gopsutil/v3/disk"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"sync"
 	"time"
@@ -41,32 +43,36 @@ var lock sync.RWMutex
 var array = make([]byte, UnitM)
 var isNewStart = true
 
-func Init() {
+func Init() error {
 	CdnSpaceLimit = int64(config.UsingSpaceLimit * UnitG)
 
 	if CdnSpaceLimit < 40*UnitG && config.GetString("runMode") != "local" {
-		logger.Fatal("40GB disk space is the minimum.")
+		logger.Error("40GB disk space is the minimum.")
+		return errors.New("disk space error")
 	}
 
 	//is dir exist
 	if !utils.Exists(global.FileDirPath) {
 		err := os.Mkdir(global.FileDirPath, 0777)
 		if err != nil {
-			logger.Fatal("tempfile dir create failed, please create dir " + global.FileDirPath + " by manual or try to run program with admin permission.")
+			logger.Error("tempfile dir create failed, please create dir " + global.FileDirPath + " by manual or try to run program with admin permission.")
+			return errors.New("FileDirPath error")
 		}
 	}
 
 	if !utils.Exists(global.SpaceHolderDir) {
 		err := os.Mkdir(global.SpaceHolderDir, 0777)
 		if err != nil {
-			logger.Fatal("spaceHolder dir create failed, please create dir " + global.SpaceHolderDir + " by manual or try to run program with admin permission.")
+			logger.Error("spaceHolder dir create failed, please create dir " + global.SpaceHolderDir + " by manual or try to run program with admin permission.")
+			return errors.New("SpaceHolderDir error")
 		}
 	}
 
 	if !utils.Exists(global.FileDirPath + "/standardfile") {
 		err := os.Mkdir(global.FileDirPath+"/standardfile", 0777)
 		if err != nil {
-			logger.Fatal("tempfile dir create failed, please create dir " + global.FileDirPath + "/standardfile" + " by manual or try to run program with admin permission.")
+			logger.Error("tempfile dir create failed, please create dir " + global.FileDirPath + "/standardfile" + " by manual or try to run program with admin permission.")
+			return errors.New("standardfile error")
 		}
 	}
 
@@ -80,17 +86,20 @@ func Init() {
 	createStdFile(100*UnitM, "100")
 
 	SyncCdnDirSize()
-	SyncHoldFileDirSize()
+	SyncHoldFileDir()
 
+	free := uint64(0)
 	d, err := disk.Usage("./")
 	if err != nil {
 		logger.Error("get disk usage error", "err", err)
+	} else {
+		free = d.Free
 	}
-	free := d.Free
 
 	total := CdnSpaceUsed + HoldFileSize + int64(free)
 	if total < CdnSpaceLimit {
-		logger.Fatal("Disk space is smaller than the value you set")
+		logger.Error("Disk space is smaller than the value you set")
+		return errors.New("Disk space error")
 	}
 
 	fmt.Println("Initializing system... ")
@@ -99,6 +108,39 @@ func Init() {
 	FullSpace()
 	isNewStart = false
 
+	return nil
+}
+
+func SyncCdnDirSize() {
+	defer panichandler.CatchPanicStack()
+	size, err := utils.GetDirSize(global.FileDirPath)
+	if err != nil {
+		logger.Error("get dir size error", "err", err)
+	}
+	CdnSpaceUsed = int64(size)
+}
+
+func SyncHoldFileDir() {
+	defer panichandler.CatchPanicStack()
+	//disk space holder
+	if !utils.Exists(global.SpaceHolderDir) {
+		err := os.Mkdir(global.SpaceHolderDir, 0777)
+		if err != nil {
+			logger.Error("spaceholder dir create failed")
+			return
+		}
+	}
+
+	holdFiles, err := ioutil.ReadDir(global.SpaceHolderDir)
+	if err != nil {
+		logger.Error("read space holder dir error", "err", err)
+		return
+	}
+
+	for _, file := range holdFiles {
+		SpaceHoldFiles = append(SpaceHoldFiles, file.Name())
+		HoldFileSize += file.Size()
+	}
 }
 
 func FullSpace() {
@@ -112,62 +154,72 @@ func FullSpace() {
 
 	SyncCdnDirSize()
 
-	lock.Lock()
+	//lock.Lock()
 	//scan exist holder files
-	SpaceHoldFiles = []string{}
-	HoldFileSize = 0
+	//SpaceHoldFiles = []string{}
+	//HoldFileSize = 0
 
-	holdFiles, err := ioutil.ReadDir(global.SpaceHolderDir)
-	if err != nil {
-		lock.Unlock()
-		logger.Error("read space holder dir error", "err", err)
-		return
-	}
-	for _, file := range holdFiles {
-		SpaceHoldFiles = append(SpaceHoldFiles, global.SpaceHolderDir+"/"+file.Name())
-		HoldFileSize += file.Size()
-	}
-	lock.Unlock()
+	//holdFiles, err := ioutil.ReadDir(global.SpaceHolderDir)
+	//if err != nil {
+	//	lock.Unlock()
+	//	logger.Error("read space holder dir error", "err", err)
+	//	return
+	//}
+	//for _, file := range holdFiles {
+	//	SpaceHoldFiles = append(SpaceHoldFiles, global.SpaceHolderDir+"/"+file.Name())
+	//	HoldFileSize += file.Size()
+	//}
+	//lock.Unlock()
 
 	LeftSpace = CdnSpaceLimit - CdnSpaceUsed - HoldFileSize
-	go func() {
-		for LeftSpace-eachHoldFileSize > headSpace {
-			lock.Lock()
-			createSpaceHoldFile()
-			LeftSpace = CdnSpaceLimit - CdnSpaceUsed - HoldFileSize
 
-			if isNewStart {
-				percent := (float64(CdnSpaceLimit-LeftSpace) / float64(CdnSpaceLimit)) * float64(100)
-				fmt.Fprintf(os.Stdout, "scaning... %3.0f%%\r", percent)
+	if LeftSpace > 0 {
+		go func() {
+			defer panichandler.CatchPanicStack()
+			for LeftSpace-eachHoldFileSize > headSpace {
+				lock.Lock()
+				createSpaceHoldFile()
+				LeftSpace = CdnSpaceLimit - CdnSpaceUsed - HoldFileSize
+
+				if isNewStart {
+					percent := (float64(CdnSpaceLimit-LeftSpace) / float64(CdnSpaceLimit)) * float64(100)
+					fmt.Fprintf(os.Stdout, "scaning... %3.0f%%\r", percent)
+				}
+				lock.Unlock()
+				time.Sleep(500 * time.Millisecond)
 			}
-			lock.Unlock()
-		}
-	}()
+		}()
+	} else {
+		releaseSpace := -LeftSpace + headSpace
+		ReleaseDiskSpace(releaseSpace)
+	}
 
 }
 
 func createSpaceHoldFile() {
 	holdFileCount := len(SpaceHoldFiles)
-	fileName := global.SpaceHolderDir + fmt.Sprintf("/%010d.bin", holdFileCount+1)
+	name := fmt.Sprintf("%010d%d", holdFileCount+1, rand.Intn(99999999))
+	name = utils.GetStringHash(name)
+	name = name + ".bin"
+	fileName := global.SpaceHolderDir + "/" + name
 	f, err := os.Create(fileName)
 	if err != nil {
 		logger.Error("Create holderFile error", "err", err, "fileName", fileName)
 		return
 	}
 	defer f.Close()
-	//if err := f.Truncate(int64(eachHoldFileSize)); err != nil {
-	//	logger.Error("Full holderFile error", "err", err, "fileName", fileName)
-	//}
+	fileSize := int64(0)
 	for i := 0; i < 100; i++ {
-		_, err := f.Write(array)
+		size, err := f.Write(array)
 		if err != nil {
 			logger.Error("createSpaceHoldFile error", "err", err)
+			return
 		}
+		fileSize += int64(size)
 	}
 
-	SpaceHoldFiles = append(SpaceHoldFiles, f.Name())
+	SpaceHoldFiles = append(SpaceHoldFiles, name)
 	HoldFileSize += int64(eachHoldFileSize)
-
 }
 
 func createStdFile(size int, name string) {
@@ -187,23 +239,6 @@ func createStdFile(size int, name string) {
 
 	//content:=make([]byte,size)
 	//f.Write(content)
-}
-
-func SyncHoldFileDirSize() {
-	size, err := utils.GetDirSize(global.SpaceHolderDir)
-	if err != nil {
-		logger.Error("get dir size error", "err", err)
-	}
-	HoldFileSize = int64(size)
-}
-
-func SyncCdnDirSize() {
-	defer panichandler.CatchPanicStack()
-	size, err := utils.GetDirSize(global.FileDirPath)
-	if err != nil {
-		logger.Error("get dir size error", "err", err)
-	}
-	CdnSpaceUsed = int64(size)
 }
 
 func ScanExpirationFiles() {
@@ -313,6 +348,38 @@ func DeleteFile(bindName string, fileName string) error {
 	return nil
 }
 
+func ReleaseDiskSpace(releaseSize int64) bool {
+	released := int64(0)
+	for released < releaseSize {
+		holdFileCount := len(SpaceHoldFiles)
+		if holdFileCount <= 0 {
+			logger.Error("ReleaseDiskSpace space not enough")
+			return false
+		}
+		name := SpaceHoldFiles[holdFileCount-1]
+		fileName := global.SpaceHolderDir + "/" + name
+		if utils.Exists(fileName) {
+			fileStat, err := os.Stat(fileName)
+			size := int64(0)
+			if err != nil {
+				logger.Error("ReleaseDiskSpace get file stat error", "err", err)
+			} else {
+				size = fileStat.Size()
+			}
+
+			err = os.Remove(fileName)
+			if err != nil {
+				logger.Error("GenDiskSpace delete space hold file error", "err", err)
+			} else {
+				LeftSpace += size
+				released += size
+			}
+		}
+		SpaceHoldFiles = SpaceHoldFiles[:holdFileCount-1]
+	}
+	return true
+}
+
 func GenDiskSpace(fileSize int64) bool {
 	lock.Lock()
 	defer lock.Unlock()
@@ -322,7 +389,8 @@ func GenDiskSpace(fileSize int64) bool {
 			logger.Error("space not enough")
 			return false
 		}
-		fileName := global.SpaceHolderDir + fmt.Sprintf("/%010d.bin", holdFileCount)
+		name := SpaceHoldFiles[holdFileCount-1]
+		fileName := global.SpaceHolderDir + "/" + name
 		if utils.Exists(fileName) {
 			fileStat, err := os.Stat(fileName)
 			size := int64(0)

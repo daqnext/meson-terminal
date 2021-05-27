@@ -23,6 +23,8 @@ var UploadFileRequestLog = "/api/v1/s/terminal/uploadlog"
 
 var GetFixRegionServerUrl = "/api/v1/common/fixregion"
 
+var SyncTrackHostUrl = "/api/v1/s/terminal/synctrackhost"
+
 var HealthCheckPort = ""
 
 var PauseMoment = int64(0)

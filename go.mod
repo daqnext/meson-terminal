@@ -3,7 +3,7 @@ module github.com/daqnext/meson-terminal
 go 1.15
 
 require (
-	github.com/daqnext/meson-common v1.0.20
+	github.com/daqnext/meson-common v1.0.26
 	github.com/fvbock/endless v0.0.0-20170109170031-447134032cb6
 	github.com/gin-contrib/gzip v0.0.3
 	github.com/gin-gonic/gin v1.6.3
@@ -17,4 +17,4 @@ require (
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f
 )
 
-replace github.com/daqnext/meson-common => /Users/zhangzhenbo/workspace/go/project/meson-common
+//replace github.com/daqnext/meson-common => /Users/zhangzhenbo/workspace/go/project/meson-common

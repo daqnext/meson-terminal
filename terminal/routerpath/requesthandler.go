@@ -64,8 +64,7 @@ func requestCachedFilesHandler(ctx *gin.Context, bindName string, filePath strin
 
 	//if not exist
 	//redirect to server
-	//todo: get cdnDomain from server
-	serverUrl := "https://coldcdn.com" + "/api/cdn/" + bindName + filePath
+	serverUrl := "https://" + fixregionmgr.CdnTrack + "/api/cdn/" + bindName + filePath
 	ctx.Redirect(302, serverUrl)
 
 	//notify server delete cache state

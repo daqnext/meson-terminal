@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-common/common/runpath"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
@@ -45,6 +46,7 @@ func CheckVersion() {
 	newVersionDownloadUrl := "https://assets.meson.network:10443/static/terminal/v" + latestVersion + "/" + fileName
 	logger.Debug("new version download url", "url", newVersionDownloadUrl)
 	//download new version
+	fileName = path.Join(runpath.RunPath, fileName)
 	err = DownloadNewVersion(fileName, newVersionDownloadUrl, latestVersion)
 	if err != nil {
 		logger.Error("auto upgrade error", "err", err)
@@ -102,7 +104,7 @@ func DownloadNewVersion(fileName string, downloadUrl string, newVersion string) 
 	file.Close()
 
 	//unzip tar.gz
-	targetDir := "./" + strings.Replace(fileName, ".tar.gz", "", 1)
+	targetDir := strings.Replace(fileName, ".tar.gz", "", 1)
 	// file read
 	fr, err := os.Open(fileName)
 	if err != nil {
@@ -129,8 +131,9 @@ func DownloadNewVersion(fileName string, downloadUrl string, newVersion string) 
 			logger.Error("unzip new version file error", "err", err)
 			return err
 		}
-		fileName := "./" + h.Name
-		err = os.MkdirAll(string([]rune(fileName)[0:strings.LastIndex(fileName, "/")]), 0777)
+		fileName := runpath.RunPath + "/" + h.Name
+		dirName := string([]rune(fileName)[0:strings.LastIndex(fileName, "/")])
+		err = os.MkdirAll(dirName, 0777)
 		if err != nil {
 			logger.Error("unzip new version file error-create dir", "err", err)
 			return err
@@ -162,14 +165,17 @@ func DownloadNewVersion(fileName string, downloadUrl string, newVersion string) 
 		if fileName == "config.txt" {
 			continue
 		}
-		err := coverOldFile(targetDir, fileName)
+		oldFile := path.Join(runpath.RunPath, fileName)
+		newFile := path.Join(targetDir, fileName)
+		err := coverOldFile(newFile, oldFile)
 		if err != nil {
 			logger.Error("new version file error-cover file", "err", err)
 			continue
 		}
 	}
 
-	os.Remove("./v" + Version)
+	versionFile := path.Join(runpath.RunPath, "./v"+Version)
+	os.Remove(versionFile)
 
 	os.RemoveAll(targetDir)
 	os.Remove(fileName)
@@ -177,19 +183,19 @@ func DownloadNewVersion(fileName string, downloadUrl string, newVersion string) 
 	return nil
 }
 
-func coverOldFile(srcDir string, fileName string) error {
-	input, err := ioutil.ReadFile(srcDir + "/" + fileName)
+func coverOldFile(newFile string, oldFile string) error {
+	input, err := ioutil.ReadFile(newFile)
 	if err != nil {
 		return err
 	}
-	os.Remove("./" + fileName)
-	err = ioutil.WriteFile("./"+fileName, input, 777)
+	os.Remove(oldFile)
+	err = ioutil.WriteFile(oldFile, input, 777)
 	if err != nil {
-		fmt.Println("Error creating", fileName)
+		fmt.Println("Error creating", oldFile)
 		fmt.Println(err)
 		return err
 	}
-	os.Chmod("./"+fileName, 0777)
+	os.Chmod(oldFile, 0777)
 	return nil
 }
 

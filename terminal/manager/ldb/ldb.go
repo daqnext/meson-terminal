@@ -29,7 +29,7 @@ func init() {
 
 func LevelDBInit() {
 	if !utils.Exists(LDBPath) {
-		err := os.Mkdir(LDBPath, 0700)
+		err := os.Mkdir(LDBPath, 0777)
 		if err != nil {
 			logger.Fatal("file dir create failed, please create dir " + LDBPath + " by manual or try to run program with admin permission.")
 		}

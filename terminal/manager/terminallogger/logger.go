@@ -1,6 +1,9 @@
 package terminallogger
 
 import (
+	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
 	"github.com/daqnext/meson-common/common/accountmgr"
 	"github.com/daqnext/meson-common/common/logger"
@@ -13,8 +16,10 @@ import (
 	"github.com/imroc/req"
 	"github.com/sirupsen/logrus"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -218,4 +223,95 @@ func UploadFileRequestLog(fileName string) {
 	if err != nil {
 		logger.Error("upload fileRequestLog error", "err", err, "file", logFilePath)
 	}
+}
+
+func GetLatestLog(lineCount int) ([]string, error) {
+	recordPath := filepath.Join(runpath.RunPath, "./dailylog")
+	rds, err := ioutil.ReadDir(recordPath)
+	if err != nil {
+		return nil, err
+	}
+	if len(rds) == 0 {
+		return nil, errors.New("no log file")
+	}
+	//rds:=sortByTime(rd)
+	logArray := []string{}
+
+	for i := len(rds) - 1; i >= 0; i-- {
+		logFileInfo := rds[i]
+		logFile, err := os.Open(filepath.Join(recordPath, logFileInfo.Name()))
+		if err != nil {
+			continue
+		}
+
+		logArrayTemp := []string{}
+		buf := bufio.NewReader(logFile)
+		for {
+			s, _, c := buf.ReadLine()
+			if c == io.EOF {
+				break
+			}
+			logArrayTemp = append(logArrayTemp, string(s)+"\n")
+			if len(logArrayTemp) > lineCount {
+				logArrayTemp = logArrayTemp[1:]
+			}
+		}
+		logFile.Close()
+		logArray = append(logArrayTemp, logArray...)
+		if len(logArray) > lineCount {
+			start := len(logArray) - lineCount
+			logArray = logArray[start:]
+			return logArray, nil
+		}
+	}
+	return logArray, nil
+}
+
+func lineCounter(r io.Reader) (int, error) {
+
+	var readSize int
+	var err error
+	var count int
+
+	buf := make([]byte, 1024)
+
+	for {
+		readSize, err = r.Read(buf)
+		if err != nil {
+			break
+		}
+
+		var buffPosition int
+		for {
+			i := bytes.IndexByte(buf[buffPosition:], '\n')
+			if i == -1 || readSize == buffPosition {
+				break
+			}
+			buffPosition += i + 1
+			count++
+		}
+	}
+	if readSize > 0 && count == 0 || count > 0 {
+		count++
+	}
+	if err == io.EOF {
+		return count, nil
+	}
+
+	return count, err
+}
+
+func sortByTime(pl []os.FileInfo) []os.FileInfo {
+	sort.Slice(pl, func(i, j int) bool {
+		flag := true
+		if pl[i].ModTime().After(pl[j].ModTime()) {
+			flag = false
+		} else if pl[i].ModTime().Equal(pl[j].ModTime()) {
+			if pl[i].Name() < pl[j].Name() {
+				flag = false
+			}
+		}
+		return flag
+	})
+	return pl
 }

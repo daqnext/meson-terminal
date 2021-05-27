@@ -3,17 +3,19 @@ package main
 import (
 	"github.com/daqnext/meson-common/common/runpath"
 	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
+	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
+	"github.com/daqnext/meson-terminal/terminal/manager/tlscertificate"
 	"github.com/takama/daemon"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"syscall"
 
 	//terminalLogger
 	_ "github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
-	"path/filepath"
-
 	//Init gin
 	"github.com/daqnext/meson-terminal/terminal/routerpath"
 
@@ -42,6 +44,19 @@ import (
 
 var g errgroup.Group
 
+//var systemDConfig = `[Unit]
+//Description={{.Description}}
+//Requires={{.Dependencies}}
+//After={{.Dependencies}}
+//[Service]
+//PIDFile=/var/run/{{.Name}}.pid
+//ExecStartPre=/bin/rm -f /var/run/{{.Name}}.pid
+//ExecStart=/bin/bash -c '{{.Path}} {{.Args}}'
+//Restart=always
+//[Install]
+//WantedBy=multi-user.target
+//`
+
 var systemDConfig = `[Unit]
 Description={{.Description}}
 Requires={{.Dependencies}}
@@ -49,32 +64,25 @@ After={{.Dependencies}}
 [Service]
 PIDFile=/var/run/{{.Name}}.pid
 ExecStartPre=/bin/rm -f /var/run/{{.Name}}.pid
-ExecStart=/bin/sh -c '{{.Path}} {{.Args}}'
+ExecStart={{.Path}} {{.Args}}
 Restart=always
 [Install]
 WantedBy=multi-user.target
 `
 
 func run() {
+	fmt.Println("Terminal starting...")
 	//check
 	fixregionmgr.CheckAvailable()
 
 	//version check
 	versionmgr.CheckVersion()
 
-	//download publickey
-	publicKeyPath := filepath.Join(runpath.RunPath, security.KeyPath)
-	url := "https://assets.meson.network:10443/static/terminal/publickey/meson_PublicKey.pem"
-	err := downloader.DownloadFile(url, publicKeyPath)
-	if err != nil {
-		logger.Error("download publicKey url="+url+"error", "err", err)
-	}
-
 	config.CheckConfig()
-	//publicKey
-	err = security.InitPublicKey(publicKeyPath)
+
+	err := security.DownloadAndInitPublicKey()
 	if err != nil {
-		logger.Error("InitPublicKey error, try to download key by manual", "err", err)
+		logger.Error("InitPublicKey error, try to download key by manual url=\"https://assets.meson.network:10443/static/terminal/publickey/meson_PublicKey.pem\"", "err", err)
 		if MesonService != nil {
 			MesonService.Stop()
 		}
@@ -85,7 +93,13 @@ func run() {
 
 	//login
 	account.TerminalLogin(fixregionmgr.Using+global.TerminalLoginUrl, config.UsingToken)
-	filemgr.Init()
+	err = filemgr.Init()
+	if err != nil {
+		if MesonService != nil {
+			MesonService.Stop()
+		}
+		logger.Fatal("Terminal Stopped")
+	}
 
 	//waiting for confirm msg
 	go func() {
@@ -94,6 +108,7 @@ func run() {
 		case flag := <-account.ServerRequestTest:
 			if flag == true {
 				logger.Info("net connect confirmed")
+				logger.Info("Terminal start success")
 				account.ServerRequestTest = nil
 				global.TerminalIsRunning = true
 			}
@@ -119,6 +134,12 @@ func run() {
 		job.StartScheduleJob()
 	})
 
+	//get host
+	fixregionmgr.SyncTrackHost()
+
+	//check TlsCertificate
+	tlscertificate.CheckTlsCertificate()
+
 	//start api server
 	g.Go(func() error {
 		port, _ := strconv.Atoi(config.UsingPort)
@@ -141,12 +162,10 @@ func run() {
 	//start cdn server
 	g.Go(func() error {
 		//start https api server
-		crtFileName := filepath.Join(runpath.RunPath, "./host_chain.crt")
-		keyFileName := filepath.Join(runpath.RunPath, "./host_key.key")
 		httpsAddr := fmt.Sprintf(":%s", config.UsingPort)
 		httpsGinServer := ginrouter.GetGinInstance(routerpath.DefaultGin)
 		// https server
-		err = httpserver.StartHttpsServer(httpsAddr, crtFileName, keyFileName, httpsGinServer.GinInstance)
+		err = httpserver.StartHttpsServer(httpsAddr, tlscertificate.CrtFileName, tlscertificate.KeyFileName, httpsGinServer.GinInstance)
 		if err != nil {
 			logger.Error("https server start error", "err", err)
 			return err
@@ -154,9 +173,10 @@ func run() {
 		return nil
 	})
 
-	if err := g.Wait(); err != nil {
-		logger.Fatal("gin server error", "err", err)
-	}
+	//don't hold main here
+	//if err := g.Wait(); err != nil {
+	//	logger.Fatal("gin server error", "err", err)
+	//}
 }
 
 func CheckGinStart(onStart func()) {
@@ -191,19 +211,19 @@ var MesonService *Service
 // Manage by daemon commands or run the daemon
 func (service *Service) Manage() (string, error) {
 
-	//usage := "Usage: meson install | remove | start | stop | status"
+	usage := "command error. Usage: sudo ./meson service-install | service-remove | service-start | service-stop | service-status"
 	// If received any kind of command, do it
-	if len(os.Args) > 1 {
+	if len(os.Args) > 1 && !strings.Contains(os.Args[1], "-config=") {
 		command := os.Args[1]
 		switch command {
-		case "install":
+		case "service-install":
 			//domain check
 			fixregionmgr.CheckAvailable()
 			config.CheckConfig()
 			account.TerminalLogin(fixregionmgr.Using+global.TerminalLoginUrl, config.UsingToken)
-			errorLog := filepath.Join(runpath.RunPath, "./error.log")
-			return service.Install("2>>" + errorLog)
-		case "remove":
+			//errorLog := "2>>"+filepath.Join(runpath.RunPath, "./error.log")
+			return service.Install()
+		case "service-remove":
 			newConfigs := map[string]string{
 				config.Token:      "",
 				config.Port:       "",
@@ -215,19 +235,36 @@ func (service *Service) Manage() (string, error) {
 			}
 			service.Stop()
 			return service.Remove()
-		case "start":
+		case "service-start":
 			//domain check
 			fixregionmgr.CheckAvailable()
 			config.CheckConfig()
 			account.TerminalLogin(fixregionmgr.Using+global.TerminalLoginUrl, config.UsingToken)
 			return service.Start()
-		case "stop":
+		case "service-stop":
 			// No need to explicitly stop cron since job will be killed
 			return service.Stop()
-		case "status":
+		case "service-status":
+			fmt.Println("--- log ---")
+			//latest 30 logs
+			logArray, err := terminallogger.GetLatestLog(40)
+			if err != nil {
+				//do something
+				fmt.Println("no any logs")
+				fmt.Println("--- log end ---")
+				logPath := filepath.Join(runpath.RunPath, "dailylog")
+				fmt.Println("--- you can try to check logs in ", logPath)
+			} else {
+				for _, v := range logArray {
+					fmt.Print(v)
+				}
+				fmt.Println("--- log end ---")
+				logPath := filepath.Join(runpath.RunPath, "dailylog")
+				fmt.Println("--- more logs in ", logPath)
+			}
 			return service.Status()
 		default:
-			//return usage, nil
+			return usage, nil
 		}
 	}
 	// Set up channel on which to send signal notifications.
@@ -283,5 +320,5 @@ func main() {
 		fmt.Println(status, "\nError: ", err)
 		os.Exit(1)
 	}
-	//fmt.Println(status)
+	fmt.Println(status)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/resp"
+	"github.com/daqnext/meson-common/common/runpath"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
@@ -89,7 +90,7 @@ func Init() error {
 	SyncHoldFileDir()
 
 	free := uint64(0)
-	d, err := disk.Usage("./")
+	d, err := disk.Usage(runpath.RunPath)
 	if err != nil {
 		logger.Error("get disk usage error", "err", err)
 	} else {

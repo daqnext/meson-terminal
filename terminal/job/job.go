@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
+	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
+	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
+	"github.com/daqnext/meson-terminal/terminal/manager/tlscertificate"
 	"github.com/daqnext/meson-terminal/terminal/manager/versionmgr"
 	"github.com/robfig/cron/v3"
 	"math/rand"
@@ -16,7 +19,8 @@ func StartPreJob() {
 }
 
 func StartLoopJob() {
-
+	statemgr.LoopJob()
+	terminallogger.RecordFileRequest()
 }
 
 func StartScheduleJob() {
@@ -31,17 +35,15 @@ func StartScheduleJob() {
 	if err != nil {
 		logger.Error("ScheduleJob-"+"SendStateToServer"+" start error", "err", err)
 	} else {
-		logger.Info("ScheduleJob-"+"SendStateToServer"+" start", "ID", jobId, "Schedule", schedule)
+		logger.Debug("ScheduleJob-"+"SendStateToServer"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
-	//version check
-	randSecond = rand.Intn(60)
-	schedule = fmt.Sprintf("%d %d * * * *", randSecond, randSecond)
-	jobId, err = c.AddFunc(schedule, versionmgr.CheckVersion)
+	schedule = fmt.Sprintf("%d %d/10 * * * *", rand.Intn(60), rand.Intn(10))
+	jobId, err = c.AddFunc(schedule, fixregionmgr.GetFixRegion)
 	if err != nil {
-		logger.Error("ScheduleJob-"+"VersionCheck"+" start error", "err", err)
+		logger.Error("ScheduleJob-"+"GetFixRegionD"+" start error", "err", err)
 	} else {
-		logger.Info("ScheduleJob-"+"VersionCheck"+" start", "ID", jobId, "Schedule", schedule)
+		logger.Debug("ScheduleJob-"+"GetFixRegionD"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
 	//sync folder size
@@ -49,7 +51,7 @@ func StartScheduleJob() {
 	if err != nil {
 		logger.Error("ScheduleJob-"+"SyncCdnDirSize"+" start error", "err", err)
 	} else {
-		logger.Info("ScheduleJob-"+"SyncCdnDirSize"+" start", "ID", jobId, "Schedule", "0 0 * * * *")
+		logger.Debug("ScheduleJob-"+"SyncCdnDirSize"+" start", "ID", jobId, "Schedule", "0 0 * * * *")
 	}
 
 	//scan expiration files  every 6 hours
@@ -59,7 +61,7 @@ func StartScheduleJob() {
 	if err != nil {
 		logger.Error("ScheduleJob-"+"ScanExpirationFiles"+" start error", "err", err)
 	} else {
-		logger.Info("ScheduleJob-"+"ScanExpirationFiles"+" start", "ID", jobId, "Schedule", schedule)
+		logger.Debug("ScheduleJob-"+"ScanExpirationFiles"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
 	//delete empty folder 1time/hour
@@ -68,7 +70,34 @@ func StartScheduleJob() {
 	if err != nil {
 		logger.Error("ScheduleJob-"+"DeleteEmptyFolder"+" start error", "err", err)
 	} else {
-		logger.Info("ScheduleJob-"+"DeleteEmptyFolder"+" start", "ID", jobId, "Schedule", schedule)
+		logger.Debug("ScheduleJob-"+"DeleteEmptyFolder"+" start", "ID", jobId, "Schedule", schedule)
+	}
+
+	//version check 1time/hour
+	schedule = fmt.Sprintf("%d %d * * * *", rand.Intn(60), rand.Intn(60))
+	jobId, err = c.AddFunc(schedule, versionmgr.CheckVersion)
+	if err != nil {
+		logger.Error("ScheduleJob-"+"VersionCheck"+" start error", "err", err)
+	} else {
+		logger.Debug("ScheduleJob-"+"VersionCheck"+" start", "ID", jobId, "Schedule", schedule)
+	}
+
+	//delete logger file 1time/day
+	schedule = fmt.Sprintf("0 0 %d * * *", rand.Intn(24))
+	jobId, err = c.AddFunc(schedule, terminallogger.DeleteTimeoutLog)
+	if err != nil {
+		logger.Error("ScheduleJob-"+"DeleteTimeoutLog"+" start error", "err", err)
+	} else {
+		logger.Debug("ScheduleJob-"+"DeleteTimeoutLog"+" start", "ID", jobId, "Schedule", schedule)
+	}
+
+	//CheckTlsCertificate 1time/hour
+	schedule = fmt.Sprintf("%d %d * * * *", rand.Intn(60), rand.Intn(60))
+	jobId, err = c.AddFunc(schedule, tlscertificate.CheckTlsCertificate)
+	if err != nil {
+		logger.Error("ScheduleJob-"+"DeleteTimeoutLog"+" start error", "err", err)
+	} else {
+		logger.Debug("ScheduleJob-"+"DeleteTimeoutLog"+" start", "ID", jobId, "Schedule", schedule)
 	}
 
 	c.Start()

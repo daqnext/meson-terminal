@@ -8,7 +8,7 @@ port = 19091
 spacelimit = 2
 
 #server address e.x. http://127.0.0.1:9090 #include port
-serverdomain= https://coldcdn.com
+server = http://coldcdn.com
 
 #apiProto http/https
 #apiProto = http

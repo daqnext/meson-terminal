@@ -18,4 +18,10 @@ func StartHttpServer(httpAddr string, handler http.Handler) error {
 
 func StartHttpsServer(httpsAddr string, certFile string, keyFile string, handler http.Handler) error {
 	return endless.ListenAndServeTLS(httpsAddr, certFile, keyFile, handler)
+
+	//srvHttp := &http.Server{
+	//	Addr:    httpsAddr,
+	//	Handler: handler,
+	//}
+	//return srvHttp.ListenAndServeTLS(certFile,keyFile)
 }

@@ -5,11 +5,12 @@ import (
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/resp"
+	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"runtime"
 )
 
-const Version = "2.0.2"
+const Version = "2.5.1"
 
 func GetOSInfo() (arch string, osInfo string) {
 	arch = "amd64"
@@ -35,7 +36,7 @@ func GetTerminalVersionFromServer() (latestVersion string, allowVersion string, 
 	header := map[string]string{
 		"Content-Type": "application/json",
 	}
-	respCtx, err := httputils.Request("GET", global.RequestCheckVersion, nil, header)
+	respCtx, err := httputils.Request("GET", fixregionmgr.FixRegionD+global.RequestCheckVersion, nil, header)
 	if err != nil {
 		logger.Error("Request FileExpirationTime error", "err", err)
 		return "", "", err

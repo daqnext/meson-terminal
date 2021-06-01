@@ -7,6 +7,7 @@ import (
 	"github.com/daqnext/meson-common/common/enum/machinetype"
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/gin-gonic/gin"
 	"runtime/debug"
@@ -18,7 +19,7 @@ func Recover(c *gin.Context) {
 		CatchPanicStack()
 		c.Abort()
 	}()
-	//加载完 defer recover，继续后续接口调用
+	//use defer recover，into next middleware
 	c.Next()
 }
 
@@ -53,7 +54,7 @@ func CatchPanicStack() {
 		Stack:       string(debug.Stack()),
 	}
 
-	_, err = httputils.Request("POST", global.PanicReportUrl, report, header)
+	_, err = httputils.Request("POST", fixregionmgr.FixRegionD+global.PanicReportUrl, report, header)
 	if err != nil {
 		logger.Error("report panic to server error", "err", err)
 	}

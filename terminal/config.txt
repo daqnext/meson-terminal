@@ -1,10 +1,10 @@
 #token register and login in https://meson.network
-token =
+token = 
 
 # server port DO NOT run in 80 or 443
 # open this port on your firewall
 # default 19091
-port =
+port = 
 
 # space limit (Maximum allowable space for Terminal in GB. Less than the total disk. At least 40 GB)
 spacelimit =

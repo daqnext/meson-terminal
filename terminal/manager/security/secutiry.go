@@ -9,19 +9,53 @@ import (
 	"encoding/pem"
 	"errors"
 	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-common/common/runpath"
+	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
+	"github.com/daqnext/meson-terminal/terminal/manager/statemgr"
 	"os"
+	"path/filepath"
+	"time"
 )
 
 var PublicKey *rsa.PublicKey = nil
 var KeyPath = "./meson_PublicKey.pem"
 
+func DownloadAndInitPublicKey() error {
+	//download publickey
+	publicKeyPath := filepath.Join(runpath.RunPath, KeyPath)
+	url := "https://assets.meson.network:10443/static/terminal/publickey/meson_PublicKey.pem"
+	err := downloader.DownloadFile(url, publicKeyPath)
+	if err != nil {
+		logger.Error("download publicKey url="+url+"error", "err", err)
+	}
+
+	//publicKey
+	err = InitPublicKey(publicKeyPath)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // ParsePublicKey
 func ParsePublicKey(publicKeyPath string) (*rsa.PublicKey, error) {
-	fp, _ := os.Open(publicKeyPath)
+	fp, err := os.Open(publicKeyPath)
+	if err != nil {
+		logger.Error("open publicKey error", "path", publicKeyPath)
+		return nil, err
+	}
 	defer fp.Close()
-	fileinfo, _ := fp.Stat()
+	fileinfo, err := fp.Stat()
+	if err != nil {
+		logger.Error("get publicKey stat error", "path", publicKeyPath)
+		return nil, err
+	}
 	buf := make([]byte, fileinfo.Size())
-	fp.Read(buf)
+	_, err = fp.Read(buf)
+	if err != nil {
+		logger.Error("read publicKey error", "path", publicKeyPath)
+		return nil, err
+	}
 
 	block, _ := pem.Decode(buf)
 	if block == nil {
@@ -59,5 +93,26 @@ func ValidateSignature(signContent string, sign string) bool {
 		logger.Error("rsa2 public check sign failed.", "err", err)
 		return false
 	}
+	return true
+}
+
+func CheckRequestLegal(timeStamp int64, macAddr string, macSign string) bool {
+	//make sure request is in 30s
+	if time.Now().Unix() > timeStamp+30 {
+		logger.Error("request past due")
+		return false
+	}
+
+	if statemgr.State.MacAddr != macAddr {
+		logger.Error("request mac address error")
+		return false
+	}
+
+	pass := ValidateSignature(statemgr.State.MacAddr, macSign)
+	if pass == false {
+		logger.Error("ValidateSignature MacAddr fail")
+		return false
+	}
+
 	return true
 }

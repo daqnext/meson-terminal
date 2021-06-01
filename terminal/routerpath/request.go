@@ -1,45 +1,75 @@
 package routerpath
 
 import (
+	"github.com/daqnext/meson-common/common/ginrouter"
+	"github.com/daqnext/meson-common/common/logger"
+	"github.com/daqnext/meson-common/common/runpath"
+	"github.com/daqnext/meson-terminal/terminal/manager/config"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
-	"github.com/gin-contrib/cors"
+	"github.com/daqnext/meson-terminal/terminal/manager/terminallogger"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
+	"path/filepath"
 	"strings"
 )
 
-func RequestServer() *gin.Engine {
-	cdnGin := gin.Default()
+const DefaultGin = "default"
+const CheckStartGin = "checkStart"
+
+func init() {
+	if config.GetString("ginMode") == "debug" {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	if logger.BaseLogger == nil {
+		terminallogger.InitDefaultLogger()
+	}
+	gin.DefaultWriter = logger.BaseLogger.Out
+
+	//outer request gin
+	defaultGin := ginrouter.New(DefaultGin)
 
 	//send panic to server
-	cdnGin.Use(panichandler.Recover)
+	defaultGin.GinInstance.Use(panichandler.Recover)
 
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowAllOrigins = true
-	corsConfig.AllowCredentials = true
-	corsConfig.AddAllowHeaders("Authorization")
-	cdnGin.Use(cors.New(corsConfig))
-
+	defaultGin.EnableDefaultCors()
 	//http://bindname-terminaltag.shoppynext.com/xxxxxxxxx
-	cdnGin.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedExtensions([]string{".bin"})))
-	cdnGin.Any("/*action", requestHandler)
+	defaultGin.GinInstance.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedExtensions([]string{".bin"})))
+	defaultGin.GinInstance.Any("/*action", terminallogger.FileRequestLoggerMiddleware(), requestHandler)
 
-	return cdnGin
+	//inner check gin
+	checkStartGin := ginrouter.New(CheckStartGin)
+	//send panic to server
+	checkStartGin.GinInstance.Use(panichandler.Recover)
 }
 
 var HandlerMap = map[string]func(ctx *gin.Context){
-	"POST /api/v1/file/save":  saveNewFileHandler,
-	"POST /api/v1/file/pause": pauseHandler,
-	"GET /api/testapi/test":   testHandler,
-	"GET /api/testapi/health": healthHandler,
+	"POST /api/v1/file/save":     saveNewFileHandler,
+	"POST /api/v1/file/delete":   deleteFileHandler,
+	"POST /api/v1/file/pause":    pauseHandler,
+	"GET /api/testapi/test":      testHandler,
+	"GET /api/testapi/health":    healthHandler,
+	"GET /api/v1/filerequestlog": fileRequestLogHandler,
+	"GET /api/v1/defaultlog":     fileDefaultLogHandler,
 }
 
 func requestHandler(ctx *gin.Context) {
-	hostName := strings.Split(ctx.Request.Host, ".")[0]
-	hostInfo := strings.Split(hostName, "-")
-	bindName := hostInfo[0]
-	path := ctx.Request.URL.String()
+	bindName := ""
+	bindNameInfo, exist := ctx.Get("bindName")
+	if exist == true {
+		str, ok := bindNameInfo.(string)
+		if ok {
+			bindName = str
+		}
+	} else {
+		hostName := strings.Split(ctx.Request.Host, ".")[0]
+		hostInfo := strings.Split(hostName, "-")
+		bindName = hostInfo[0]
+	}
 
+	path := ctx.Request.URL.String()
 	method := ctx.Request.Method
 	// not GET or HEAD
 	//if bindName!="0" && (method != "GET" && method != "HEAD") {
@@ -69,7 +99,19 @@ func requestHandler(ctx *gin.Context) {
 	if strings.Contains(path, "/api/static/files/") {
 		path := ctx.Request.URL.Path
 		requestFile := strings.Replace(path, "/api/static/", "", 1)
-		ctx.File("./" + requestFile)
+		filePath := filepath.Join(runpath.RunPath, requestFile)
+		ctx.File(filePath)
+		return
+	}
+
+	//request log
+	//if speedTester request file
+	// https://0-tagxxxxxx.shoppynext.com:19091/api/log/requestRecordlog/xxxx.log
+	if strings.Contains(path, "/api/log/") {
+		path := ctx.Request.URL.Path
+		requestFile := strings.Replace(path, "/api/log/", "", 1)
+		logPath := filepath.Join(runpath.RunPath, requestFile)
+		ctx.File(logPath)
 		return
 	}
 

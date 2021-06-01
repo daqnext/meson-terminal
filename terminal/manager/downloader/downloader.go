@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"errors"
 	"github.com/daqnext/meson-common/common"
 	"github.com/daqnext/meson-common/common/accountmgr"
 	"github.com/daqnext/meson-common/common/commonmsg"
@@ -9,6 +10,7 @@ import (
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/utils"
 	"github.com/daqnext/meson-terminal/terminal/manager/filemgr"
+	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/ldb"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
@@ -26,11 +28,15 @@ func DownloadFile(url string, savePath string) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != 200 {
+		return errors.New("DownloadFile Status:" + resp.Status)
+	}
+
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(savePath, data, 0644)
+	err = ioutil.WriteFile(savePath, data, 0777)
 	if err != nil {
 		return err
 	}
@@ -38,22 +44,30 @@ func DownloadFile(url string, savePath string) error {
 }
 
 func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
-	dir := global.FileDirPath + "/" + downloadCmd.BindNameHash
+	dir := global.FileDirPath + "/" + downloadCmd.BindName
 	if !utils.Exists(dir) {
-		os.Mkdir(dir, 0777)
+		err := os.MkdirAll(dir, 0777)
+		if err != nil {
+			logger.Error("AddToDownloadQueue os.MkdirAll error", "err", err, "dir", dir)
+			return err
+		}
 	}
-	fileName := utils.FileAddMark(downloadCmd.FileNameHash, common.RedirectMark)
+	fileName := utils.FileAddMark(downloadCmd.FileName, common.RedirectMark)
 	savePath := dir + "/" + fileName
 
 	info := &downloadtaskmgr.DownloadInfo{
-		TargetUrl: downloadCmd.DownloadUrl,
-		OriginTag: downloadCmd.TransferTag,
-		BindName:  downloadCmd.BindNameHash,
-		FileName:  downloadCmd.FileNameHash,
-		Continent: downloadCmd.Continent,
-		Country:   downloadCmd.Country,
-		Area:      downloadCmd.Area,
-		SavePath:  savePath,
+		TargetUrl:    downloadCmd.DownloadUrl,
+		BindName:     downloadCmd.BindName,
+		FileName:     downloadCmd.FileName,
+		Continent:    downloadCmd.RequestContinent,
+		Country:      downloadCmd.RequestCountry,
+		Area:         downloadCmd.RequestArea,
+		SavePath:     savePath,
+		DownloadType: downloadCmd.DownloadType,
+		OriginRegion: downloadCmd.OriginRegion,
+		//TargetRegion: downloadCmd.TargetRegion,
+    
+		//CacheTime: downloadCmd.CacheTime,
 	}
 
 	return downloadtaskmgr.AddGlobalDownloadTask(info)
@@ -63,7 +77,11 @@ func OnDownloadSuccess(task *downloadtaskmgr.DownloadTask) {
 	logger.Debug("download success", "task", task)
 
 	filePath := task.SavePath
-	go ldb.SetAccessTimeStamp(task.BindName+"/"+task.FileName, time.Now().Unix())
+	fileName := utils.FileAddMark(task.FileName, common.RedirectMark)
+	go func() {
+		defer panichandler.CatchPanicStack()
+		ldb.SetAccessTimeStamp(task.BindName+"/"+fileName, time.Now().Unix())
+	}()
 	//get file size
 	fileInfo, err := os.Stat(filePath)
 	if err == nil {
@@ -72,18 +90,22 @@ func OnDownloadSuccess(task *downloadtaskmgr.DownloadTask) {
 
 	//post download finish msg to server
 	payload := commonmsg.TerminalDownloadFinishMsg{
-		TransferTag:  task.OriginTag,
-		FileNameHash: task.FileName,
-		BindNameHash: task.BindName,
-		Continent:    task.Continent,
-		Country:      task.Country,
-		Area:         task.Area,
+		FileName:         task.FileName,
+		BindName:         task.BindName,
+		RequestContinent: task.Continent,
+		RequestCountry:   task.Country,
+		RequestArea:      task.Area,
+		DownloadType:     task.DownloadType,
+		OriginRegion:     task.OriginRegion,
+		//TargetRegion:     task.TargetRegion,
+		DownloadUrl: task.TargetUrl,
+		FileSize:    uint64(fileInfo.Size()),
 	}
 	header := map[string]string{
 		"Content-Type":  "application/json",
 		"Authorization": "Bearer " + accountmgr.Token,
 	}
-	_, err = httputils.Request("POST", global.ReportDownloadFinishUrl, payload, header)
+	_, err = httputils.Request("POST", fixregionmgr.FixRegionD+global.ReportDownloadFinishUrl, payload, header)
 	if err != nil {
 		logger.Error("send downloadfinish msg to server error", "err", err)
 	}
@@ -94,20 +116,73 @@ func OnDownloadFailed(task *downloadtaskmgr.DownloadTask) {
 
 	//post failed msg to server
 	payload := commonmsg.TerminalDownloadFailedMsg{
-		TransferTag:  task.OriginTag,
-		FileNameHash: task.FileName,
-		BindNameHash: task.BindName,
-		Continent:    task.Continent,
-		Country:      task.Country,
-		Area:         task.Area,
+		FileName:         task.FileName,
+		BindName:         task.BindName,
+		RequestContinent: task.Continent,
+		RequestCountry:   task.Country,
+		RequestArea:      task.Area,
+		DownloadType:     task.DownloadType,
+		OriginRegion:     task.OriginRegion,
+		//TargetRegion:     task.TargetRegion,
+		DownloadUrl: task.TargetUrl,
+		FileSize:    uint64(task.FileSize),
 	}
 	header := map[string]string{
 		"Content-Type":  "application/json",
 		"Authorization": "Bearer " + accountmgr.Token,
 	}
-	_, err := httputils.Request("POST", global.ReportDownloadFailedUrl, payload, header)
+	_, err := httputils.Request("POST", fixregionmgr.FixRegionD+global.ReportDownloadFailedUrl, payload, header)
 	if err != nil {
 		logger.Error("send downloadfailed msg to server error", "err", err)
+	}
+}
+
+func OnDownloadStart(task *downloadtaskmgr.DownloadTask) {
+	defer panichandler.CatchPanicStack()
+	//send down load start msg
+	logger.Debug("Download Start", "task", task)
+	payload := commonmsg.TerminalDownloadStartMsg{
+		BindName:         task.BindName,
+		FileName:         task.FileName,
+		RequestContinent: task.Continent,
+		RequestCountry:   task.Country,
+		RequestArea:      task.Area,
+	}
+	logger.Debug("report start to server", "msg", payload)
+	header := map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": "Bearer " + accountmgr.Token,
+	}
+	_, err := httputils.Request("POST", fixregionmgr.FixRegionD+global.ReportDownloadStartUrl, payload, header)
+	if err != nil {
+		logger.Error("send downloadStart msg to server error", "err", err)
+	}
+}
+
+func OnDownloading(task *downloadtaskmgr.DownloadTask, usedTimeSec int) {
+	defer panichandler.CatchPanicStack()
+	//send download process info
+	logger.Debug("Download Process", "downloaded", task.DownloadedSize, "usedTimeSec", usedTimeSec)
+	if usedTimeSec%60000 != 0 {
+		return
+	}
+
+	payload := commonmsg.TerminalDownloadProcessMsg{
+		BindName:         task.BindName,
+		FileName:         task.FileName,
+		RequestContinent: task.Continent,
+		RequestCountry:   task.Country,
+		RequestArea:      task.Area,
+		Downloaded:       task.DownloadedSize,
+	}
+	logger.Debug("report process to server", "msg", payload)
+	header := map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": "Bearer " + accountmgr.Token,
+	}
+	_, err := httputils.Request("POST", fixregionmgr.FixRegionD+global.ReportDownloadProcessUrl, payload, header)
+	if err != nil {
+		logger.Error("send downloadprocess msg to server error", "err", err)
 	}
 }
 
@@ -121,6 +196,8 @@ func StartDownloadJob() {
 	downloadtaskmgr.SetPanicCatcher(panichandler.CatchPanicStack)
 	downloadtaskmgr.SetOnTaskSuccess(OnDownloadSuccess)
 	downloadtaskmgr.SetOnTaskFailed(OnDownloadFailed)
+	downloadtaskmgr.SetOnDownloadStart(OnDownloadStart)
+	downloadtaskmgr.SetOnDownloading(OnDownloading)
 
 	//start loop
 	downloadtaskmgr.Run()

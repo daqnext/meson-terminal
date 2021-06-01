@@ -126,7 +126,7 @@ func saveNewFileHandler(ctx *gin.Context) {
 		return
 	}
 
-	//就加入新的下载任务
+	//add new download task
 	err := downloader.AddToDownloadQueue(downloadCmd)
 	if err != nil {
 		resp.ErrorResp(ctx, resp.ErrAddDownloadTaskFailed)

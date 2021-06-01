@@ -193,7 +193,7 @@ func SendStateToServer() {
 		"Content-Type":  "application/json",
 		"Authorization": "Bearer " + accountmgr.Token,
 	}
-	//提交请求
+	//request
 	content, err := httputils.Request("POST", fixregionmgr.FixRegionD+global.SendHeartBeatUrl, machineState, header)
 	if err != nil {
 		logger.Error("send terminalState to server error", "err", err)

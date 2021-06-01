@@ -66,7 +66,7 @@ func AddToDownloadQueue(downloadCmd commonmsg.DownLoadFileCmdMsg) error {
 		DownloadType: downloadCmd.DownloadType,
 		OriginRegion: downloadCmd.OriginRegion,
 		//TargetRegion: downloadCmd.TargetRegion,
-
+    
 		//CacheTime: downloadCmd.CacheTime,
 	}
 

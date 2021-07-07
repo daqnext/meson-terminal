@@ -40,3 +40,6 @@ DIR="meson-darwin-amd64" && GOOS=darwin GOARCH=amd64 go build -o "./build/${DIR}
 echo "Compiling Linux   x86_64 version"
 DIR="meson-linux-386"   &&  GOOS=linux GOARCH=386   go build -o "./build/${DIR}/meson" && generate_tar ${DIR}
 DIR="meson-linux-amd64" &&  GOOS=linux GOARCH=amd64 go build -o "./build/${DIR}/meson" && generate_tar ${DIR}
+
+echo "Compiling ARM64    version"
+DIR="meson-arm64" &&  GOOS=linux GOARCH=arm64 go build -o "./build/${DIR}/meson" && generate_tar ${DIR}

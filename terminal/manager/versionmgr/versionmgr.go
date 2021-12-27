@@ -2,15 +2,16 @@ package versionmgr
 
 import (
 	"encoding/json"
+	"runtime"
+
 	"github.com/daqnext/meson-common/common/httputils"
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/resp"
 	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
-	"runtime"
 )
 
-const Version = "2.5.1"
+const Version = "2.5.2"
 
 func GetOSInfo() (arch string, osInfo string) {
 	arch = "amd64"

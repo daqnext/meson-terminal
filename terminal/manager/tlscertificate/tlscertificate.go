@@ -4,17 +4,18 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"syscall"
+	"time"
+
 	"github.com/daqnext/meson-common/common/logger"
 	"github.com/daqnext/meson-common/common/runpath"
 	"github.com/daqnext/meson-terminal/terminal/manager/downloader"
 	"github.com/daqnext/meson-terminal/terminal/manager/fixregionmgr"
 	"github.com/daqnext/meson-terminal/terminal/manager/global"
 	"github.com/daqnext/meson-terminal/terminal/manager/panichandler"
-	"os/exec"
-	"path/filepath"
-	"runtime"
-	"syscall"
-	"time"
 )
 
 var CrtFileName = filepath.Join(runpath.RunPath, "./host_chain.crt")
@@ -119,19 +120,18 @@ func CheckTlsCertificate() {
 		return
 	}
 
-	if time.Now().Unix()+7*24*3600 > c.NotAfter.Unix() {
-		if global.TerminalIsRunning {
-			//restart
-			switch runtime.GOOS {
-			case "windows":
-				logger.Error("TLS Certificate refreshed, please restart terminal")
-			default:
-				command := fmt.Sprintf("kill -1 %d", syscall.Getpid())
-				cmd := exec.Command("/bin/bash", "-c", command)
-				cmd.Run()
-			}
-		} else {
+	if global.TerminalIsRunning {
+		//restart
+		switch runtime.GOOS {
+		case "windows":
 			logger.Error("TLS Certificate refreshed, please restart terminal")
+		default:
+			command := fmt.Sprintf("kill -1 %d", syscall.Getpid())
+			cmd := exec.Command("/bin/bash", "-c", command)
+			cmd.Run()
 		}
+	} else {
+		logger.Error("TLS Certificate refreshed, please restart terminal")
 	}
+
 }
